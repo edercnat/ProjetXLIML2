@@ -8,3 +8,6 @@ Participants :
     Clarent Hemery Fay
     Tancrède Papin
 
+La problématique :
+    Pouvoir sérialiser des types "complexes" exemples(BigInt, Map, Date, Nan, Référence circulaire
+    undefined, fonctions, Symbol, (Infinity et - Infinity), Set, WeakMap, WeakSet, RegExp, Error,)
