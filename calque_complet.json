@@ -1,0 +1,4 @@
+{
+  "codeDeLaClasse": "class Personnage {\n    constructor(pseudo, niveau, classeArmure) {\n        this.pseudo = pseudo;\n        this.niveau = niveau;\n        this.classeArmure = classeArmure;\n    }\n    attaquer() \n    {\n        console.log(` ${this.pseudo} lance une attaque !`);\n        console.log(`coucou`);\n        console.log(\"salut\");\n    }\n    LevelUp()\n    {\n        console.log(`${this.pseudo} est niveau ${this.niveau}, il va passer au niveau supérieur`);\n        this.niveau++;\n    }\n    EstMort(pseudo)\n    {\n        console.log(\"oui\");\n    }\n}",
+  "proprietes": {}
+}
