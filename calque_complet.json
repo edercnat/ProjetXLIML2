@@ -1,8 +1,4 @@
 {
-<<<<<<< Updated upstream
-  "codeDeLaClasse": "class Personnage {\n    constructor(pseudo, niveau, classeArmure) {\n        this.pseudo = pseudo;\n        this.niveau = niveau;\n        this.classeArmure = classeArmure;\n    }\n    attaquer() \n    {\n        console.log(` ${this.pseudo} lance une attaque !`);\n        console.log(`coucou`);\n        console.log(\"salut\");\n    }\n    LevelUp()\n    {\n        console.log(`${this.pseudo} est niveau ${this.niveau}, il va passer au niveau supérieur`);\n        this.niveau++;\n    }\n    EstMort(pseudo)\n    {\n        console.log(\"oui\");\n    }\n}",
-=======
   "codeDeLaClasse": "class Personnage {\r\n    constructor(pseudo, niveau, classeArmure) {\r\n        this.pseudo = pseudo;\r\n        this.niveau = niveau;\r\n        this.classeArmure = classeArmure;\r\n    }\r\n    attaquer() \r\n    {\r\n        console.log(` ${this.pseudo} lance une attaque !`);\r\n        console.log(`coucou`);\r\n        console.log(\"salut\");\r\n    }\r\n    LevelUp()\r\n    {\r\n        console.log(`${this.pseudo} est niveau ${this.niveau}, il va passer au niveau supérieur`);\r\n        this.niveau++;\r\n    }\r\n    EstMort(pseudo)\r\n    {\r\n        console.log(\"oui\");\r\n    }\r\n}",
->>>>>>> Stashed changes
   "proprietes": {}
 }
