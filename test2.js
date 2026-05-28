@@ -30,7 +30,11 @@ class Personnage {
 
 
 
+<<<<<<< Updated upstream
 function serialiserPourLeNew(param) {
+=======
+function serialiser(param) {
+>>>>>>> Stashed changes
     const data_JSON = {
         codeDeLaClasse: param.constructor.toString(),
         proprietes: param
@@ -40,7 +44,11 @@ function serialiserPourLeNew(param) {
 
 
 const hero = new Personnage();
+<<<<<<< Updated upstream
 const hero_ser = serialiserPourLeNew(hero);
+=======
+const hero_ser = serialiser(hero);
+>>>>>>> Stashed changes
 fs.writeFileSync('calque_complet.json', hero_ser, 'utf8');
 
 
@@ -52,7 +60,11 @@ fs.writeFileSync('calque_complet.json', hero_ser, 'utf8');
 
 
 
+<<<<<<< Updated upstream
 function importerClasseDepuisJSON(JSON_data) {
+=======
+function deserialiser(JSON_data) {
+>>>>>>> Stashed changes
     const data = JSON.parse(JSON_data);
     if (!data.codeDeLaClasse) {
         throw new Error("Ce JSON ne contient pas de code de classe.");
@@ -64,8 +76,16 @@ function importerClasseDepuisJSON(JSON_data) {
 
 
 const contenuJson = fs.readFileSync('calque_complet.json', 'utf8');
+<<<<<<< Updated upstream
 const Personnages = importerClasseDepuisJSON(contenuJson);
 const nouveauHero = new Personnages("Rémi", 99, 50);
 const unAutreHero = new Personnages("Guerrier", 5, 10);
 nouveauHero.attaquer(); 
 unAutreHero.LevelUp();
+=======
+const Personnages = deserialiser(contenuJson);
+const nouveauHero = new Personnages("Rémi", 99, 50);
+const unAutreHero = new Personnages("Guerrier", 5, 10);
+nouveauHero.attaquer(); 
+unAutreHero.LevelUp();
+>>>>>>> Stashed changes

@@ -23,6 +23,7 @@ class Personnage {
     }
 }
 
+<<<<<<< Updated upstream
 
 function serialiserClasseComplete(param) 
 {
@@ -85,3 +86,14 @@ console.log(hero_Deser);
 console.log("\n");
 // hero_Deser.LevelUp();
 // hero_Deser.est
+=======
+/*Variables Global*/
+const compt = 0;
+const map = new Map();
+
+/*Fonctions*/
+function replacer(key, value)
+{
+    if(typeof value == "NaN" || typeof value)
+}
+>>>>>>> Stashed changes
