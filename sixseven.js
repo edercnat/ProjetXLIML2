@@ -19,22 +19,16 @@ console.log(JSON.stringify(objet1));
 //-------------------------------------
 //  Sérialisations des fonctions
 //-------------------------------------
-
+let registreFonctions = {}; // Notre registre pour les fonctions
 //Fonction qui converti une fonction en un objet
 function objOfFunction(fonction){
-    const str_func = fonction.toString();
-    //récupération des différents truc que l'on va mettre dans l'objet
-    const funcName = fonction.name; //Nom
-    const funcParameters =  (str_func.slice(str_func.indexOf('(') + 1, str_func.indexOf(')'))).split(","); //Paramètres (en liste)
-    const funcCode = '{' + str_func.slice(str_func.indexOf('{') + 1); //Code de la fonction
+    let returnObjet = {}; //Objet de retour
 
-    //On construit l'objet de retour
-    let returnObj = {};
-    returnObj["name"] = funcName;
-    returnObj["parameters"] = funcParameters;
-    returnObj["code"] = funcCode;
+    registreFonctions[fonction.name] = fonction;
+    returnObjet["type"] = "function";
+    returnObjet["name"] = fonction.name;
 
-    return returnObj;
+    return returnObjet;
 }
 
 //Exemple de conversion de la fonction en un objet sans tag
@@ -49,7 +43,36 @@ const objet2 = objOfFunction(testeur);
 console.log(JSON.stringify(objet2));
 
 //On récupère la fonction et on voit si ça marche
-const result = new Function(objet2["parameters"], objet2["code"]);
-result("aaaa", "bbbbb");
+const result = registreFonctions[objet2["name"]];
 //On remarque que les sauts de lignes dans le code de la fonction sont bien ignorés lors de la reconstruction de la fonction et ne gênent donc pas
+result("lala","lele");
+//-------------------------------------
+//  Tests d'utilisation avec le
+//  paramètre replacer
+//-------------------------------------
 
+//Objet nous permettant de faire des tests sur nos avancées actuelles
+let obj3 = {
+    "val" : 1,
+    "val1" : "unechaine",
+    "map" : map1,
+    "fonction" : testeur
+}
+
+//Fonction replacer qui sera appelée dans notre JSON.stringify
+function replacer1(clef, valeur){
+    if(typeof valeur == 'function'){
+        return objOfFunction(valeur);
+    }
+    else if(valeur instanceof Map){
+        return objOfMap(valeur);
+    }
+    else{
+        return valeur;
+    }
+}
+
+const strReplacer = JSON.stringify(obj3, replacer1);
+console.log(strReplacer);
+
+const lala = '\\de';
