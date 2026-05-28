@@ -5,10 +5,14 @@
 const map1 = new Map([["clef1", "val1"], ["clef2", "val2"]]);
 //Fonction qui permet de convertir une map en un objet
 function objOfMap(map){
-    const returnObject = {};
+    const returnObject= {};
+    const mapObject = {};
     for(const clef of map.keys()){
-        returnObject[clef] = map.get(clef);
+        mapObject[clef] = map.get(clef);
     }
+
+    returnObject["type"] = "Map";
+    returnObject["valeur"] = mapObject;
     return returnObject
 }
 
@@ -42,10 +46,24 @@ function testeur(chaine, useless){
 const objet2 = objOfFunction(testeur);
 console.log(JSON.stringify(objet2));
 
-//On récupère la fonction et on voit si ça marche
+//On récupère la fonction depuis le registre et on voit si ça marche
 const result = registreFonctions[objet2["name"]];
-//On remarque que les sauts de lignes dans le code de la fonction sont bien ignorés lors de la reconstruction de la fonction et ne gênent donc pas
 result("lala","lele");
+
+
+//-------------------------------------
+//  Gestion des valeurs constantes
+//  non-traitées
+//-------------------------------------
+
+//On utilise un ID pour chaque type :
+const ID_NAN = "\&NaN";
+const ID_UNDEFINED = "\&undefined";
+const ID_INFINITY = "\&Infinity";
+const ID_MINUSINFINITY = "\&-Infinity";
+const ID_NULL = "\&null";
+
+
 //-------------------------------------
 //  Tests d'utilisation avec le
 //  paramètre replacer
@@ -56,7 +74,9 @@ let obj3 = {
     "val" : 1,
     "val1" : "unechaine",
     "map" : map1,
-    "fonction" : testeur
+    "fonction" : testeur,
+    "const1" : NaN,
+    "const2" : -Infinity
 }
 
 //Fonction replacer qui sera appelée dans notre JSON.stringify
@@ -67,6 +87,22 @@ function replacer1(clef, valeur){
     else if(valeur instanceof Map){
         return objOfMap(valeur);
     }
+    //Pour les types constants
+    else if(Number.isNaN(valeur)){
+        return ID_NAN;
+    }
+    else if(valeur == -Infinity){
+        return ID_MINUSINFINITY;
+    }
+    else if(valeur == Infinity){
+        return ID_INFINITY;
+    }
+    else if(valeur == undefined){
+        return ID_UNDEFINED;
+    }
+    else if(valeur == null){
+        return ID_NULL;
+    }
     else{
         return valeur;
     }
@@ -75,4 +111,6 @@ function replacer1(clef, valeur){
 const strReplacer = JSON.stringify(obj3, replacer1);
 console.log(strReplacer);
 
-const lala = '\\de';
+
+//On regarde le registre des fonctions à la fin
+//console.log(registreFonctions["testeur"].toString());
