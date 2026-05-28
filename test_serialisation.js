@@ -26,7 +26,17 @@ class Personnage {
 }
 
 
+function replacer(key, value)
+{
+    if(typeof json.stringify(value) == 'string')
+    {
+        return null;
+    }
+    else
+    {
 
+    }
+}
 
 
 
