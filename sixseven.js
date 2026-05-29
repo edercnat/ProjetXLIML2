@@ -114,3 +114,4 @@ console.log(strReplacer);
 
 //On regarde le registre des fonctions à la fin
 //console.log(registreFonctions["testeur"].toString());
+
