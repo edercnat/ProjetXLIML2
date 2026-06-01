@@ -1,3 +1,4 @@
+//Classe de test
 class Test {
     constructor() {
         this.age = 20;
@@ -10,24 +11,51 @@ class Test {
     }
 }
 
-
+//Variables de test
 const test1 = new Test();
 const date1 = new Date();
 
-const DictionnairePrototypes = {};
+//Fonction d'affichage du dictionnaire des prototypes
+function afficheDicoProto(dico){
+    for(const clef in dico){
+        console.log(clef);
+    }
+}
 
-DictionnairePrototypes[date1.constructor.name] = date1.constructor;
+//Fonction qui check si le prototype est déjà stocké dans le dico
+function estDejaStocke(proto, dico){
+    for(clef in dico){
+        if(clef == proto.name){
+            return true;
+        }
+    }
+    return false;
+}
+const DictionnairePrototypes = {};//Dico des protoypes utilisés
 
-DictionnairePrototypes[test1.constructor.name] = test1.constructor;
+function replacer(clef, valeur){
+    if(clef == ""){
+        returnObject = {};
+        if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
+            DictionnairePrototypes[this[clef].constructor.name] = this[clef].constructor;
+        }
+        returnObject["id"] = this[clef].constructor.name;
+        returnObject["value"] = valeur.toString();
 
-const returnObject = {}
-returnObject["prototype"] = date1.constructor.name;
-returnObject["value"] = date1.toString();
+        return returnObject;
+    }
+
+    return valeur;
+}
 
 
-console.log(JSON.stringify(returnObject));
+const stringRetour = JSON.stringify(date1, replacer);
 
-const datefin =  new DictionnairePrototypes["Date"](returnObject["value"]);
+console.log(stringRetour);
 
-console.log(datefin);
-console.log(typeof date1);
+//Affichage du dico
+afficheDicoProto(DictionnairePrototypes);
+
+const dateFin = new DictionnairePrototypes["Date"](JSON.parse(stringRetour)["value"]);
+console.log(dateFin);
+
