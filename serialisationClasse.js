@@ -10,34 +10,24 @@ class Test {
     }
 }
 
+
 const test1 = new Test();
-const test2 = {"lala": 2};
+const date1 = new Date();
 
-function objOfClass(c) {
-    let obj = {};
-    // Récupère les propriétés de l'instance (age, taille, name)
-    obj["Attributs"] = Object.getOwnPropertyNames(c);
-    // Récupère les méthodes/getters du prototype (constructor, nom)
-    obj["Methodes"] = Object.getOwnPropertyNames(Object.getPrototypeOf(c));
-    return obj;
-}
+const DictionnairePrototypes = {};
 
-function estUneClasse(obj) {
-    if (typeof obj !== "object" || obj === null) {
-        return false;
-    }
-    // Correction ici : utilisation de .constructor (en anglais)
-    return obj.constructor !== Object;
-}
+DictionnairePrototypes[date1.constructor.name] = date1.constructor;
 
-function replacer(clef, val) {
-    // Attention : lors du premier passage, JSON.stringify analyse l'objet global 
-    // sous une clé vide "". Nous devons traiter la valeur d'origine.
-    if (clef === "") return val; 
-    if (estUneClasse(val)) {
-        return objOfClass(val);
-    }
-    return val;
-}
+DictionnairePrototypes[test1.constructor.name] = test1.constructor;
 
-console.log(JSON.stringify(test1, replacer, 2));
+const returnObject = {}
+returnObject["prototype"] = date1.constructor.name;
+returnObject["value"] = date1.toString();
+
+
+console.log(JSON.stringify(returnObject));
+
+const datefin =  new DictionnairePrototypes["Date"](returnObject["value"]);
+
+console.log(datefin);
+console.log(typeof date1);
