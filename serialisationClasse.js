@@ -12,6 +12,7 @@ class Test {
     nom(){
         return this.name;
     }
+
 }
 
 //Variables de test et globales
@@ -40,9 +41,12 @@ function estDejaStocke(proto, dico){
     return false;
 }
 
-//Fonction qui renvoie true si l'objet n'est pas traité nativement
-function pasTraiterNativement(objet){
-    return typeof objet == "object" && objet.constructor.name != "Object"
+//Fonction qui renvoie true si l'objet est traité nativement
+function estTraiteNativement(obj){
+    return typeof obj == "string" || 
+    (typeof obj == "number" && isFinite(obj) && !isNaN(obj))||
+    typeof obj == "boolean" ||
+    typeof obj == "object" && obj.constructor.name == "Object";
 }
 
 
@@ -52,17 +56,17 @@ function pasTraiterNativement(objet){
 function replacer(clef, valeur){
     //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
     //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
-    if(pasTraiterNativement(this[clef])){
+    if(!estTraiteNativement(this[clef])){
         returnObject = {};
 
         //On ajoute la valeur dans le dico si elle n'a pas déjà été traitée
         if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
-            DictionnairePrototypes[this[clef].constructor.name] = this[clef].constructor;
+            DictionnairePrototypes[this[clef].constructor.name] = Object.getPrototypeOf(this[clef]);
         }
 
         //Construction de l'objet sérialisé
         returnObject["id"] = this[clef].constructor.name;
-        returnObject["value"] = valeur.toString();
+        returnObject["value"] = valeur;
 
         return returnObject;
     }
@@ -75,15 +79,15 @@ function replacer(clef, valeur){
 //  Affichage et tests
 //-----------------------------------------------
 const stringDate = JSON.stringify(date1, replacer);
-const stringTest = JSON.stringify(test1, replacer);
+//const stringTest = JSON.stringify(test1, replacer);
 
 console.log(stringDate);
-console.log(stringTest);
+//console.log(stringTest);
 
 //Affichage du dico
 //afficheDicoProto(DictionnairePrototypes);
 
 //Désérialisation grossière
-//const dateFin = new DictionnairePrototypes["Date"](JSON.parse(stringRetour)["value"]);
-//console.log(dateFin);
+const dateFin = new DictionnairePrototypes["Date"].constructor(JSON.parse(stringDate)["value"]);
+console.log(dateFin);
 

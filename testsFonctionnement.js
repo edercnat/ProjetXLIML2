@@ -19,5 +19,22 @@ function replacer(clef, valeur){
 }
 
 
-JSON.stringify(date, replacer);
-console.log(typeof date, date.constructor.name);
+//JSON.stringify(date, replacer);
+//console.log(typeof date, date.constructor.name);
+
+//console.log(JSON.stringify(date));
+
+//console.log(typeof true, typeof 1, typeof "lala", typeof [1,2]);
+
+
+function estTraiteNativement(obj){
+    return typeof obj == "string" || 
+    (typeof obj == "number" && isFinite(obj) && !isNaN(obj))||
+    typeof obj == "boolean" ||
+    typeof obj == "object" && obj.constructor.name == "Object";
+}
+
+console.log(estTraiteNativement(NaN));
+
+console.log(objTest.toString());
+console.log(isFinite("lala"));
