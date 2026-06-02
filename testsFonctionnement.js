@@ -4,11 +4,7 @@ const objTest = {
     "Date" : new Date()
 }
 
-const date = new Date();
-
-function pasTraiterNativement(objet){
-    return typeof objet == "object" && objet.constructor.name != "Object"
-}
+const date = new Date(8.64e15);
 
 function replacer(clef, valeur){
     if(pasTraiterNativement(this[clef])){
@@ -36,5 +32,9 @@ function estTraiteNativement(obj){
 
 console.log(estTraiteNativement(NaN));
 
-console.log(objTest.toString());
-console.log(isFinite("lala"));
+//console.log(objTest.toString());
+//console.log(isFinite("lala"));
+
+const aaaa = 2;
+console.log(Object.entries(aaaa));
+

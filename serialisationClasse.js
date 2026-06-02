@@ -4,7 +4,7 @@
 //Classe de test
 class Test {
     constructor() {
-        this.age = 20;
+        this.age = 0;
         this.taille = 1.8;
         this.name = "Laurent";
     }
@@ -50,6 +50,8 @@ function estTraiteNativement(obj){
 }
 
 
+//Fonction qui renvoie la liste des attributs de l'instance
+
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
@@ -58,7 +60,6 @@ function replacer(clef, valeur){
     //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
     if(!estTraiteNativement(this[clef])){
         returnObject = {};
-
         //On ajoute la valeur dans le dico si elle n'a pas déjà été traitée
         if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
             DictionnairePrototypes[this[clef].constructor.name] = Object.getPrototypeOf(this[clef]);
@@ -66,8 +67,16 @@ function replacer(clef, valeur){
 
         //Construction de l'objet sérialisé
         returnObject["id"] = this[clef].constructor.name;
-        returnObject["value"] = valeur;
 
+        returnObject["value"] = valeur.toString();
+        /*
+        if(valeur.entries == []){
+            returnObject["value"] = valeur;
+        }
+        else{
+            returnObject["value"] = valeur.entries;
+        }
+        */
         return returnObject;
     }
 
@@ -79,10 +88,10 @@ function replacer(clef, valeur){
 //  Affichage et tests
 //-----------------------------------------------
 const stringDate = JSON.stringify(date1, replacer);
-//const stringTest = JSON.stringify(test1, replacer);
+const stringTest = JSON.stringify(test1, replacer);
 
 console.log(stringDate);
-//console.log(stringTest);
+console.log(stringTest);
 
 //Affichage du dico
 //afficheDicoProto(DictionnairePrototypes);
