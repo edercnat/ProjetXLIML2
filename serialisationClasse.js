@@ -60,7 +60,8 @@ function estTraiteNativement(obj){
     return typeof obj == "string" || 
     (typeof obj == "number" && isFinite(obj) && !isNaN(obj))||
     typeof obj == "boolean" ||
-    typeof obj == "object" && obj.constructor.name == "Object";
+    typeof obj == "object" && obj.constructor.name == "Object" ||
+    typeof Array.isArray(obj);
 }
 
 
@@ -72,6 +73,12 @@ function objOfInstance(inst){
     }
     return returnObject;
 }
+
+//Fonction donnée par gemini à vérifier renvoie true pour Map, Set, List et String
+function isIterable(obj) {
+  return obj != null && typeof obj[Symbol.iterator] === 'function';
+}
+
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
@@ -102,19 +109,20 @@ function replacer(clef, valeur){
         //Construction de l'objet sérialisé (pareil pour toutes les valeurs)
         returnObject["constructeur"] = objetOriginal.constructor.name;;
 
-        switch(constructeur){
-            case "Object" : 
-                returnObject["valeur"] = objOfInstance(objetOriginal);                
-                break;
-            case "Map" :
-                returnObject["valeur"] = objetOriginal.entries().toString();
-                break;
-            case "Date" :
-                returnObject["valeur"] = valeur;
-                break;
-            default :
-                returnObject["valeur"] = "Valeur Non sérialisée";
-
+        if(isIterable(objetOriginal)){
+            returnObject["valeur"] = [...objetOriginal];
+        }
+        else{
+            switch(constructeur){
+                case "Object" : 
+                    returnObject["valeur"] = objOfInstance(objetOriginal);                
+                    break;
+                case "Date" :
+                    returnObject["valeur"] = valeur.toString();
+                    break;
+                default :
+                    returnObject["valeur"] = "Valeur Non sérialisée";
+            }
         }
         return returnObject;
     }
@@ -139,6 +147,6 @@ console.log(mapTest);
 //afficheDicoProto(DictionnairePrototypes);
 
 //Désérialisation grossière
-const dateFin = new DictionnairePrototypes["Date"].constructor(JSON.parse(stringDate)["valeur"]);
-console.log(dateFin);
+//const dateFin = new DictionnairePrototypes["Date"].constructor(JSON.parse(stringDate)["valeur"]);
+//console.log(dateFin);
 

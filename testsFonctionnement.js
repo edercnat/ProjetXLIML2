@@ -5,7 +5,7 @@ const objTest = {
 }
 
 const date = new Date(8.64e15);
-const map = new Map();
+const map = new Map([["clef1", 1], ["clef2", 2]]);
 const set = new Set();
 
 
@@ -48,7 +48,7 @@ function estTraiteNativement(obj){
     typeof obj == "object" && obj.constructor.name == "Object";
 }
 
-console.log(estTraiteNativement(NaN));
+//console.log(estTraiteNativement(NaN));
 
 //console.log(objTest.toString());
 //console.log(isFinite("lala"));
@@ -64,9 +64,34 @@ function afficheAttributs(val){
     console.log("Tag", Object.prototype.toString.call(val));
 }
 
-afficheAttributs(date);
-afficheAttributs(test1);
-afficheAttributs(set);
-afficheAttributs(map);
-afficheAttributs(objTest);
+function isIterable(obj) {
+  return obj != null && typeof obj[Symbol.iterator] === 'function';
+}
+
+function serialiserTest(obj){
+   if(isIterable(obj)){
+        return [...obj];
+   }
+   else {return Number(obj);}
+}
+
+
+
+//afficheAttributs(date);
+//afficheAttributs(test1);
+//afficheAttributs(set);
+//afficheAttributs(map);
+//afficheAttributs(objTest);
+console.log(serialiserTest(map));
+console.log(serialiserTest(date));
+console.log(Array.isArray([2,3]));
+
+function estTraiteNativement(obj){
+    return typeof obj == "string" || 
+    (typeof obj == "number" && isFinite(obj) && !isNaN(obj))||
+    typeof obj == "boolean" ||
+    typeof obj == "object" && obj.constructor.name == "Object" ||
+    typeof Array.isArray(obj);
+}
+console.log(Array.isArray(estTraiteNativement([2,3])));
 
