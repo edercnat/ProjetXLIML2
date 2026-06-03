@@ -1,85 +1,89 @@
-const fs = require('fs');  //sert a pouvoir crée un nouveau fichier
+//-----------------------------------------------
+//  Variables globales
+//-----------------------------------------------
+//Classe de test
+class Test {
+    constructor() {
+        this.age = 20;
+        this.taille = 1.8;
+        this.name = "Laurent";
+    }
 
-class Personnage {
-    constructor(pseudo, niveau, classeArmure) {
-        this.pseudo = pseudo;
-        this.niveau = niveau;
-        this.classeArmure = classeArmure;
-    }
-    attaquer() 
-    {
-        console.log(` ${this.pseudo} lance une attaque !`);
-        console.log(`coucou`);
-        console.log("salut");
-    }
-    LevelUp()
-    {
-        console.log(`${this.pseudo} est niveau ${this.niveau}, il va passer au niveau supérieur`);
-        this.niveau++;
-    }
-    EstMort(pseudo)
-    {
-        console.log("oui");
+    nom(){
+        return this.name;
     }
 }
 
-
-function serialiserClasseComplete(param) 
-{
-    const prototype = Object.getPrototypeOf(param);
-    const methodesTexte = {};
-    console.log(Object.getOwnPropertyNames(prototype));
-    Object.getOwnPropertyNames(prototype).forEach(nom => 
-    {
-            if (nom !== "constructor" && typeof prototype[nom] === "function") 
-            {
-                methodesTexte[nom] = prototype[nom].toString();
-                // console.log(prototype[nom].toString());
-                // console.log("\n");
-            }
-    });
-    const data_JSON = 
-    {
-        est_une_classe : true,
-        className: param.constructor.name,
-        constructor : param.constructor.toString(),
-        proprietes: param,
-        methodes: methodesTexte
-    };
-    return JSON.stringify(data_JSON, null,2);
-}
+//Variables de test et globales
+const test1 = new Test();
+const date1 = new Date();
+const DictionnairePrototypes = {};//Dico des protoypes utilisés
 
 
-function deserialiserClasseComplete(JSON_data) {
-    const data = JSON.parse(JSON_data);
-    if (!data.est_une_classe)
-    {
-        return data;
-    } 
-    const nouveauPrototype = {};
-    for (const [nomMethode, codeTexte] of Object.entries(data.methodes))
-    {
-        const codeCompile = eval("({" + codeTexte + "})"); 
-        nouveauPrototype[nomMethode] = codeCompile[nomMethode];
+//-----------------------------------------------
+//  Fonctions utiles pour tests et traitement
+//-----------------------------------------------
+//Fonction d'affichage du dictionnaire des prototypes
+function afficheDicoProto(dico){
+    for(const clef in dico){
+        console.log(clef);
     }
-    const nouvelleInstance = Object.create(nouveauPrototype);
-    Object.assign(nouvelleInstance, data.proprietes);
-    return nouvelleInstance;
+}
+
+//Fonction qui check si le prototype est déjà stocké dans le dico
+function estDejaStocke(proto, dico){
+    for(clef in dico){
+        if(clef == proto.name){
+            return true;
+        }
+    }
+    return false;
+}
+
+//Fonction qui renvoie true si l'objet n'est pas traité nativement
+function pasTraiterNativement(objet){
+    return typeof objet == "object" && objet.constructor.name != "Object"
 }
 
 
-console.log("\n");
-const hero = new Personnage(1,12, 12);
-const hero_ser = serialiserClasseComplete(hero);
-
-try {
-    // Paramètres : (Nom du fichier, Contenu à écrire, Encodage)
-    fs.writeFileSync('calque_personnage.json', hero_ser, 'utf8');
-    console.log("Succès : Le fichier 'calque_personnage.json' a été généré !");
-} catch (erreur) {
-    console.error("Une erreur est survenue lors de la création du fichier :", erreur);
+//-----------------------------------------------
+//  Fonction replacer
+//-----------------------------------------------
+function replacer(clef, valeur){
+    if(pasTraiterNativement(this[clef])){
+        returnObject = {};
+        if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
+            DictionnairePrototypes[this[clef].constructor.name] = this[clef].constructor;
+        }
+        returnObject["id"] = this[clef].constructor.name;
+        if(this[clef] instanceof Date)
+        {
+            returnObject["value"] = this[clef].toISOString();
+            return returnObject;
+        }
+        else
+        {
+            returnObject["value"] = {...this[clef]};
+            return returnObject;
+        }
+        return returnObject;
+    }
+    return valeur;
 }
 
-const hero_Deser = deserialiserClasseComplete(hero_ser);
-console.log(hero_Deser);
-console.log("\n");
+//-----------------------------------------------
+//  Affichage et tests
+//-----------------------------------------------
+const stringDate = JSON.stringify(date1, replacer);
+const stringTest = JSON.stringify(test1, replacer);
+
+console.log(stringDate);
+console.log(stringTest);
+
+//Affichage du dico
+//afficheDicoProto(DictionnairePrototypes);
+
+//Désérialisation grossière
+//const dateFin = new DictionnairePrototypes["Date"](JSON.parse(stringRetour)["value"]);
+//console.log(dateFin);
+
