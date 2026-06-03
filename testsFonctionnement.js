@@ -5,6 +5,9 @@ const objTest = {
 }
 
 const date = new Date(8.64e15);
+const map = new Map();
+const set = new Set();
+
 
 function replacer(clef, valeur){
     if(pasTraiterNativement(this[clef])){
@@ -22,7 +25,22 @@ function replacer(clef, valeur){
 
 //console.log(typeof true, typeof 1, typeof "lala", typeof [1,2]);
 
+//Classe de test
+class Test {
+    constructor(la, ne) {
+        this.age = 0;
+        this.taille = 1.8;
+        this.name = "Laurent";
+    }
 
+    nom(){
+        return this.name;
+    }
+
+}
+
+//Variables de test et globales
+const test1 = new Test(1,2);
 function estTraiteNativement(obj){
     return typeof obj == "string" || 
     (typeof obj == "number" && isFinite(obj) && !isNaN(obj))||
@@ -35,6 +53,20 @@ console.log(estTraiteNativement(NaN));
 //console.log(objTest.toString());
 //console.log(isFinite("lala"));
 
-const aaaa = 2;
-console.log(Object.entries(aaaa));
+function afficheAttributs(val){
+    console.log("\n");
+    console.log("Nom constructeur", val.constructor.name);
+    console.log("Typeof", typeof val);
+    console.log("toString", val.toString());
+    console.log("Keys", Object.keys(val));
+    console.log("Value", val.values);
+    console.log("paramètre", val);
+    console.log("Tag", Object.prototype.toString.call(val));
+}
+
+afficheAttributs(date);
+afficheAttributs(test1);
+afficheAttributs(set);
+afficheAttributs(map);
+afficheAttributs(objTest);
 
