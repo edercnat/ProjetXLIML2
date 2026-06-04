@@ -82,32 +82,20 @@ function replacer(clef, valeur){
     //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
     //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
     const objetOriginal = this[clef];
-
-    // Affichage de toutes les infos
-    // console.log();
-    // console.log("clef :", clef);
-    // console.log("val :", valeur);
-    // console.log("obj original :", objetOriginal);
-    //On ne modifie pas le comportement des null, underfined, NaN et des objets natifs pour l'instant
-    if(valeur == null || valeur == undefined || valeur == NaN || Object.getPrototypeOf(objetOriginal) === objetOriginal.prototype){
-        return valeur;
+    
+    //On ajoute la valeur dans le dico si elle n'a pas déjà été traitée
+    if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
+        DictionnairePrototypes[this[clef].constructor.name] = Object.getPrototypeOf(objetOriginal);
     }
-    //Si l'objet n'est pas traité nativement et qu'il n'est pas déjà traité
-    if(!estTraiteNativement(objetOriginal)){
-        const returnObject = {};
-        const nomConstructeur = objetOriginal.constructor.name;
-        
-        //On ajoute la valeur dans le dico si elle n'a pas déjà été traitée
-        if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
-            DictionnairePrototypes[nomConstructeur] = Object.getPrototypeOf(objetOriginal);
-        }
 
-        returnObject["constructeur"] = nomConstructeur;;
-        console.log(objetOriginal);
-        returnObject["valeur"] = [...objetOriginal];
-        console.log("returnObject : ", returnObject["constructeur"], returnObject["valeur"]);
+    if(clef != "valeur" && clef != "constructeur"){
+        const returnObject = {};
+        returnObject["constructeur"] = this[clef].constructor.name;
+        returnObject["valeur"] = valeur;
+
         return returnObject;
     }
+
 
     //On retourne la valeur de base si elle est traitée nativement ou déjà traité
     return valeur;
@@ -116,13 +104,19 @@ function replacer(clef, valeur){
 //-----------------------------------------------
 //  Affichage et tests
 //-----------------------------------------------
-// const stringDate = JSON.stringify(date1, replacer);
-// console.log(stringDate);
-const stringTest = JSON.stringify(test1, replacer);
-console.log(stringTest);
-const mapTest = JSON.stringify(map1, replacer);
-console.log(mapTest);
-const nullTest = JSON.stringify(null1, replacer);
+const date = new Date(8.64e15);
+const map = new Map([["clef1", 1], ["clef2", 2]]);
+const set = new Set(["Vallet", "Dame", "Roi"]);
+const chaine = "chaine";
+const test = new Test(1);
+const objTest = {
+    "date" : date,
+    "map" : map,
+    "set" : set,
+    "chaine" : chaine,
+    "test" : test
+}
+
+console.log(JSON.stringify(objTest, replacer, 2));
 
 afficheDicoProto(DictionnairePrototypes);
-console.log(estTraiteNativement(mapTest));

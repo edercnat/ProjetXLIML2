@@ -27,15 +27,15 @@ const objTest = {
     "test" : test
 }
 function replacer(clef, valeur){
+    //Si on n'est pas dans la partie type
     if(clef != "valeur" && clef != "type"){
         const returnObject = {};
         returnObject["type"] = this[clef].constructor.name;
-        
-        
         returnObject["valeur"] = valeur;
 
         return returnObject;
     }
+    
     return valeur;
 }
 
@@ -45,4 +45,5 @@ function replacerAffiche(clef, valeur){
     return valeur;
 }
 console.log(JSON.stringify(objTest, replacer, 2));
-console.log(map.toJSON);
+// console.log(map.toJSON == undefined);
+// console.log(date.toJSON == undefined);
