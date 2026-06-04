@@ -60,8 +60,7 @@ function estTraiteNativement(obj){
     return typeof obj == "string" || 
     (typeof obj == "number" && isFinite(obj) && !isNaN(obj))||
     typeof obj == "boolean" ||
-    typeof obj == "object" && obj.constructor.name == "Object" ||
-    typeof Array.isArray(obj);
+    typeof obj == "object" && obj.constructor.name == "Object"
 }
 
 
@@ -74,10 +73,7 @@ function objOfInstance(inst){
     return returnObject;
 }
 
-//Fonction donnée par gemini à vérifier renvoie true pour Map, Set, List et String
-function isIterable(obj) {
-  return obj != null && typeof obj[Symbol.iterator] === 'function';
-}
+
 
 //-----------------------------------------------
 //  Fonction replacer
@@ -85,68 +81,48 @@ function isIterable(obj) {
 function replacer(clef, valeur){
     //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
     //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
-    
     const objetOriginal = this[clef];
-    //afficheAttributs(objetOriginal);
 
-    /*
-    console.log(iterationReplacer);
-    iterationReplacer++;
-    */
-
+    // Affichage de toutes les infos
+    // console.log();
+    // console.log("clef :", clef);
+    // console.log("val :", valeur);
+    // console.log("obj original :", objetOriginal);
+    //On ne modifie pas le comportement des null, underfined, NaN et des objets natifs pour l'instant
     if(valeur == null || valeur == undefined || valeur == NaN || Object.getPrototypeOf(objetOriginal) === objetOriginal.prototype){
         return valeur;
     }
+    //Si l'objet n'est pas traité nativement et qu'il n'est pas déjà traité
     if(!estTraiteNativement(objetOriginal)){
-        returnObject = {};
-    
+        const returnObject = {};
+        const nomConstructeur = objetOriginal.constructor.name;
+        
         //On ajoute la valeur dans le dico si elle n'a pas déjà été traitée
         if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
-            DictionnairePrototypes[objetOriginal.constructor.name] = Object.getPrototypeOf(objetOriginal);
+            DictionnairePrototypes[nomConstructeur] = Object.getPrototypeOf(objetOriginal);
         }
 
-        const constructeur = Object.prototype.toString.call(objetOriginal).slice(8, -1);
-        //Construction de l'objet sérialisé (pareil pour toutes les valeurs)
-        returnObject["constructeur"] = objetOriginal.constructor.name;;
-
-        if(isIterable(objetOriginal)){
-            returnObject["valeur"] = [...objetOriginal];
-        }
-        else{
-            switch(constructeur){
-                case "Object" : 
-                    returnObject["valeur"] = objOfInstance(objetOriginal);                
-                    break;
-                case "Date" :
-                    returnObject["valeur"] = valeur.toString();
-                    break;
-                default :
-                    returnObject["valeur"] = "Valeur Non sérialisée";
-            }
-        }
+        returnObject["constructeur"] = nomConstructeur;;
+        console.log(objetOriginal);
+        returnObject["valeur"] = [...objetOriginal];
+        console.log("returnObject : ", returnObject["constructeur"], returnObject["valeur"]);
         return returnObject;
     }
 
-    //On retourne la valeur de base si elle est traitée nativement
+    //On retourne la valeur de base si elle est traitée nativement ou déjà traité
     return valeur;
 }
 
 //-----------------------------------------------
 //  Affichage et tests
 //-----------------------------------------------
-const stringDate = JSON.stringify(date1, replacer);
+// const stringDate = JSON.stringify(date1, replacer);
+// console.log(stringDate);
 const stringTest = JSON.stringify(test1, replacer);
+console.log(stringTest);
 const mapTest = JSON.stringify(map1, replacer);
+console.log(mapTest);
 const nullTest = JSON.stringify(null1, replacer);
 
-console.log(stringDate);
-console.log(stringTest);
-console.log(mapTest);
-
-//Affichage du dico
-//afficheDicoProto(DictionnairePrototypes);
-
-//Désérialisation grossière
-//const dateFin = new DictionnairePrototypes["Date"].constructor(JSON.parse(stringDate)["valeur"]);
-//console.log(dateFin);
-
+afficheDicoProto(DictionnairePrototypes);
+console.log(estTraiteNativement(mapTest));
