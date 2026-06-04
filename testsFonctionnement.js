@@ -47,3 +47,4 @@ function replacerAffiche(clef, valeur){
 console.log(JSON.stringify(objTest, replacer, 2));
 // console.log(map.toJSON == undefined);
 // console.log(date.toJSON == undefined);
+console.log(NaN.toString());
