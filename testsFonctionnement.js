@@ -52,4 +52,4 @@ function replacerAffiche(clef, valeur){
 test["age"] = 1;
 console.log(test.age);
 
-console.log(new RegExp("mot").toString());
+console.log(typeof new RegExp("mot"));

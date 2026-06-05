@@ -22,13 +22,15 @@ const map = new Map([["clef1", 1], ["clef2", 2], [set, 157657651786n], [NaN, Inf
 const regexp = new RegExp("mot");
 const chaine = "chaine";
 const test = new Test(1);
+const symbol =  Symbol("symbol");
 const objTest = {
     "date" : date,
     "map" : map,
     "set" : set,
     "chaine" : chaine,
     "test" : test,
-    "regexp" : regexp
+    "regexp" : regexp,
+    "symbol" : symbol
 }
 const DictionnairePrototypes = {};//Dico des protoypes utilisés
 
@@ -103,7 +105,7 @@ function replacer(clef, valeur){
                 return Array.from(objetOriginal);
             }
             else{
-                if(typeof valeur != "object"){
+                if(typeof valeur != "object" || typeof valeur == "regexp"){
                     valRetour = valeur.toString();
                 }
             }
