@@ -50,6 +50,9 @@ function replacerAffiche(clef, valeur){
 // console.log(NaN.toString());
 
 test["age"] = 1;
-console.log(test.age);
+//console.log(test.age);
+JSON.stringify(undefined, replacerAffiche);
+//console.log(Array.from(RegExp("mot")), RegExp("mot").toString());
+console.log(undefined == null);
 
-console.log(typeof new RegExp("mot"));
+console.log(typeof null);
