@@ -44,7 +44,12 @@ function replacerAffiche(clef, valeur){
     console.log(clef, valeur, this[clef]);
     return valeur;
 }
-console.log(JSON.stringify(objTest, replacer, 2));
+// console.log(JSON.stringify(objTest, replacer, 2));
 // console.log(map.toJSON == undefined);
 // console.log(date.toJSON == undefined);
-console.log(NaN.toString());
+// console.log(NaN.toString());
+
+test["age"] = 1;
+console.log(test.age);
+
+console.log(new RegExp("mot").toString());

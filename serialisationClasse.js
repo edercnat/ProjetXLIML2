@@ -19,7 +19,7 @@ class Test {
 const date = new Date(8.64e15);
 const set = new Set(["Vallet", "Dame", "Roi"]);
 const map = new Map([["clef1", 1], ["clef2", 2], [set, 157657651786n], [NaN, Infinity], [Infinity, -Infinity]]);
-
+const regexp = new RegExp("mot");
 const chaine = "chaine";
 const test = new Test(1);
 const objTest = {
@@ -27,10 +27,10 @@ const objTest = {
     "map" : map,
     "set" : set,
     "chaine" : chaine,
-    "test" : test
+    "test" : test,
+    "regexp" : regexp
 }
 const DictionnairePrototypes = {};//Dico des protoypes utilisés
-
 
 //-----------------------------------------------
 //  Fonctions utiles pour tests et traitement
@@ -45,6 +45,7 @@ function afficheAttributs(val){
     console.log("paramètre", val);
     console.log("Tag", Object.prototype.toString.call(val));
 }
+
 //Fonction d'affichage du dictionnaire des prototypes
 function afficheDicoProto(dico){
     for(const clef in dico){
@@ -71,17 +72,6 @@ function estTraiteNativement(obj){
 }
 
 
-//Fonction qui transforme une instance en dictionnaire de clef : valeur avec tous ses attributs
-function objOfInstance(inst){
-    const returnObject = {};
-    for(const clef in inst){
-        returnObject[clef] = inst[clef];
-    }
-    return returnObject;
-}
-
-
-
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
@@ -101,8 +91,6 @@ function replacer(clef, valeur){
             if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
                 DictionnairePrototypes[this[clef].constructor.name] = Object.getPrototypeOf(objetOriginal);
             }
-
-
             return {
                 "constructeur" : objetOriginal.constructor.name,
                 "valeur" : valRetour
@@ -117,7 +105,7 @@ function replacer(clef, valeur){
             else{
                 if(typeof valeur != "object"){
                     valRetour = valeur.toString();
-                }   
+                }
             }
         }
     }
