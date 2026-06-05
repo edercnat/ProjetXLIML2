@@ -3,8 +3,8 @@
 //-----------------------------------------------
 //Classe de test
 class Test {
-    constructor() {
-        this.age = 20;
+    constructor(parameter) {
+        this.age = 0;
         this.taille = 1.8;
         this.name = "Laurent";
     }
@@ -12,17 +12,40 @@ class Test {
     nom(){
         return this.name;
     }
+
 }
 
 //Variables de test et globales
-const test1 = new Test();
-const date1 = new Date();
+const date = new Date(8.64e15);
+const set = new Set(["Vallet", "Dame", "Roi"]);
+const map = new Map([["clef1", 1], ["clef2", 2], [set, 157657651786n], [NaN, Infinity], [Infinity, -Infinity]]);
+const expression = new RegExp("ab+c", "i");
+const chaine = "chaine";
+const test = new Test(1);
+const objTest = {
+    "date" : date,
+    "map" : map,
+    "set" : set,
+    "chaine" : chaine,
+    "test" : test,
+    "piège" : expression
+}
 const DictionnairePrototypes = {};//Dico des protoypes utilisés
 
 
 //-----------------------------------------------
 //  Fonctions utiles pour tests et traitement
 //-----------------------------------------------
+function afficheAttributs(val){
+    console.log("\n");
+    console.log("Nom constructeur", val.constructor.name);
+    console.log("Typeof", typeof val);
+    console.log("toString", val.toString());
+    console.log("Keys", Object.keys(val));
+    console.log("Value", val.values);
+    console.log("paramètre", val);
+    console.log("Tag", Object.prototype.toString.call(val));
+}
 //Fonction d'affichage du dictionnaire des prototypes
 function afficheDicoProto(dico){
     for(const clef in dico){
@@ -40,50 +63,72 @@ function estDejaStocke(proto, dico){
     return false;
 }
 
-//Fonction qui renvoie true si l'objet n'est pas traité nativement
-function pasTraiterNativement(objet){
-    return typeof objet == "object" && objet.constructor.name != "Object"
+//Fonction qui renvoie true si l'objet est traité nativement
+function estTraiteNativement(obj){
+    return typeof obj == "string" || 
+    (typeof obj == "number" && isFinite(obj) && !isNaN(obj))||
+    typeof obj == "boolean" ||
+    typeof obj == "object" && obj.constructor.name == "Object"
 }
+
+
+//Fonction qui transforme une instance en dictionnaire de clef : valeur avec tous ses attributs
+function objOfInstance(inst){
+    const returnObject = {};
+    for(const clef in inst){
+        returnObject[clef] = inst[clef];
+    }
+    return returnObject;
+}
+
 
 
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
-function replacer(clef, valeur){
-    if(pasTraiterNativement(this[clef])){
-        returnObject = {};
-        if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
-            DictionnairePrototypes[this[clef].constructor.name] = this[clef].constructor;
-        }
-        returnObject["id"] = this[clef].constructor.name;
-        if(this[clef] instanceof Date)
+function replacer(clef, valeur)
+{
+    const objetOriginal = this[clef];
+    let valRetour = valeur;
+    console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
+    if(!estTraiteNativement(objetOriginal))
+    {
+        if(clef != "valeur" && clef != "constructeur" && !Array.isArray(objetOriginal))
         {
-            returnObject["value"] = this[clef].toISOString();
-            return returnObject;
+            if(!estDejaStocke(valeur.constructor,DictionnairePrototypes))
+            {
+                DictionnairePrototypes[this[clef].constructor.name] = Object.getPrototypeOf(objetOriginal);
+            }
+            return {
+                "constructeur" : objetOriginal.constructor.name,
+                "valeur" : valRetour
+            };
         }
-        else
-        {
-            returnObject["value"] = {...this[clef]};
-            return returnObject;
+        if(clef == "valeur")
+        {            
+            valeurRetour = Array.from(objetOriginal);
+            if(valeurRetour.length > 0)
+            {
+                return Array.from(objetOriginal);
+            }
+            else
+            {
+                if(typeof valeur != "object")
+                {
+                    valRetour = valeur.toString();
+                }   
+            }
         }
-        return returnObject;
     }
-    return valeur;
+    return valRetour;
 }
+
 
 //-----------------------------------------------
 //  Affichage et tests
 //-----------------------------------------------
-const stringDate = JSON.stringify(date1, replacer);
-const stringTest = JSON.stringify(test1, replacer);
 
-console.log(stringDate);
-console.log(stringTest);
 
-//Affichage du dico
-//afficheDicoProto(DictionnairePrototypes);
+console.log(JSON.stringify(objTest, replacer, 2));
 
-//Désérialisation grossière
-//const dateFin = new DictionnairePrototypes["Date"](JSON.parse(stringRetour)["value"]);
-//console.log(dateFin);
-
+afficheDicoProto(DictionnairePrototypes);
