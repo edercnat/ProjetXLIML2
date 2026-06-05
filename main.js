@@ -1,89 +1,124 @@
-//-----------------------------------------------
-//  Variables globales
-//-----------------------------------------------
-//Classe de test
-class Test {
-    constructor() {
-        this.age = 20;
-        this.taille = 1.8;
-        this.name = "Laurent";
+const strategiesNatives = {
+    'Date': (valeur) => ({ __type: 'Date', data: valeur.toISOString() }),
+    'Set':  (valeur) => ({ __type: 'Set', data: Array.from(valeur) }),
+    'Map':  (valeur) => ({ __type: 'Map', data: Array.from(valeur.entries()) }),
+    'RegExp': (valeur) => ({ __type: 'RegExp', source: valeur.source, flags: valeur.flags })
+};
+
+
+
+
+const reconstructeursNatifs = {
+    'Date': (valeur) => new Date(valeur.data),
+    'Set':  (valeur) => new Set(valeur.data),
+    'Map':  (valeur) => new Map(valeur.data),
+    'RegExp': (valeur) => new RegExp(valeur.source, valeur.flags),
+    'BigInt': (valeur) => BigInt(valeur.data),
+    'Infinity': () => Infinity,
+    '-Infinity': () => -Infinity,
+    'NaN': () => NaN
+};
+
+
+
+
+function replacer(clef, valeur)
+{
+    if (typeof valeur === 'number' && !isFinite(valeur))
+    {
+        return { __type: isNaN(valeur) ? 'NaN' : (valeur > 0 ? 'Infinity' : '-Infinity') };
     }
-
-    nom(){
-        return this.name;
+    if (typeof valeur === 'bigint') 
+    {
+        return { __type: 'BigInt', data: valeur.toString()};
     }
-}
-
-//Variables de test et globales
-const test1 = new Test();
-const date1 = new Date();
-const DictionnairePrototypes = {};//Dico des protoypes utilisés
-
-
-//-----------------------------------------------
-//  Fonctions utiles pour tests et traitement
-//-----------------------------------------------
-//Fonction d'affichage du dictionnaire des prototypes
-function afficheDicoProto(dico){
-    for(const clef in dico){
-        console.log(clef);
-    }
-}
-
-//Fonction qui check si le prototype est déjà stocké dans le dico
-function estDejaStocke(proto, dico){
-    for(clef in dico){
-        if(clef == proto.name){
-            return true;
-        }
-    }
-    return false;
-}
-
-//Fonction qui renvoie true si l'objet n'est pas traité nativement
-function pasTraiterNativement(objet){
-    return typeof objet == "object" && objet.constructor.name != "Object"
-}
-
-
-//-----------------------------------------------
-//  Fonction replacer
-//-----------------------------------------------
-function replacer(clef, valeur){
-    if(pasTraiterNativement(this[clef])){
-        returnObject = {};
-        if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
-            DictionnairePrototypes[this[clef].constructor.name] = this[clef].constructor;
-        }
-        returnObject["id"] = this[clef].constructor.name;
-        if(this[clef] instanceof Date)
+    if (valeur !== null && typeof valeur === "object") 
+    {
+        const nomType = valeur.constructor?.name;
+        if (nomType === "Object" || nomType === "Array")
         {
-            returnObject["value"] = this[clef].toISOString();
-            return returnObject;
-        }
-        else
+            return valeur;
+        } 
+        if (strategiesNatives[nomType]) 
         {
-            returnObject["value"] = {...this[clef]};
-            return returnObject;
+            return strategiesNatives[nomType](valeur);
         }
-        return returnObject;
+        return {
+            NomDeLaClasse: nomType,
+            Data: {...valeur}
+        };
     }
     return valeur;
 }
 
-//-----------------------------------------------
-//  Affichage et tests
-//-----------------------------------------------
-const stringDate = JSON.stringify(date1, replacer);
-const stringTest = JSON.stringify(test1, replacer);
 
-console.log(stringDate);
-console.log(stringTest);
 
-//Affichage du dico
-//afficheDicoProto(DictionnairePrototypes);
+function reviver(clef, valeur) {
+    if (valeur !== null && typeof valeur === "object")
+    {
+        if (valeur.__type && reconstructeursNatifs[valeur.__type])
+        {
+            return reconstructeursNatifs[valeur.__type](valeur);
+        }
+        if (valeur.NomDeLaClasse) 
+        {
+            const nomClasse = valeur.NomDeLaClasse;
+            const ClasseReference = globalThis[nomClasse];
+            if (ClasseReference && typeof ClasseReference === "function") 
+            {
+                const instance = Object.create(ClasseReference.prototype);
+                return Object.assign(instance, valeur.Data);
+            }
+            else 
+            {
+                return valeur.Data; 
+            }
+        }
+    }
+    return valeur;
+}
 
-//Désérialisation grossière
-//const dateFin = new DictionnairePrototypes["Date"](JSON.parse(stringRetour)["value"]);
-//console.log(dateFin);
+class Test 
+{
+    constructor(parameter) 
+    {
+        this.age = 0;
+        this.taille = 1.8;
+        this.name = "Laurent";
+    }
+    nom()
+    {
+        console.log("test");
+        return this.name;
+    }
 
+}
+
+//Variables de test et globales
+// const date = new Date(8.64e15);
+// const set = new Set(["Vallet", "Dame", "Roi"]);
+// const map = new Map([["clef1", 1], ["clef2", 2], [set, 157657651786n], [NaN, Infinity], [Infinity, -Infinity]]);
+// const expression = new RegExp("ab+c", "i");
+// const chaine = "chaine";
+// const test = new Test(1);
+// const objTest = {
+//     "date" : date,
+//     "map" : map,
+//     "set" : set,
+//     "chaine" : chaine,
+//     "test" : test,
+//     "piège" : null
+// }
+
+// console.log(objTest);
+// const test6767 = JSON.stringify(objTest, replacer);
+// console.log(test6767);
+// const test676767 = JSON.parse(test6767, reviver);
+// console.log(test676767);
+
+let tests = new Test(2);
+tests = JSON.stringify(tests, replacer);
+console.log(tests);
+const tests5 = JSON.parse(tests, reviver);
+console.log(tests5);
+tests5.nom();
