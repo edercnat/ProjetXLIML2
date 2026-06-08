@@ -18,6 +18,7 @@ class Test {
         this.poches = new Map([["Cartes", set], ["Aura", Infinity]]);
         this.dateNaissance = date;
         this.typesSpeciaux = [symbol, erreur, chaine, regexp, NaN, 200n, null, undefined];
+        this.objet = {"nom" : "pierre"};
     }
 
     fonctionIgnoree(){
@@ -91,7 +92,8 @@ function replacer(clef, valeur){
 
     //Nos types primitifs sont les strings, listes et les objets de type dictionnaire.
     //On ne les traite donc pas
-    if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && Object.prototype.toString.call(objetOriginal) != "[object Object]"){
+    //Condition peut être utile plus tard : Object.prototype.toString.call(objetOriginal) != "[object Object]"
+    if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && objetOriginal.constructor.name != "Object"){
 
         //Si la valeur n'est pas déjà sous forme {
         //     "constructeur" : constructeur,
@@ -113,7 +115,7 @@ function replacer(clef, valeur){
                 valRetour = valSerialisee;
             }
             //Sinon, on sérialise tout le reste sauf les object de type dictionnaire et les classes
-            if(valSerialisee.length == 0 && valeur.constructor.name != "Object"){
+            if(valSerialisee.length == 0 && Object.prototype.toString.call(objetOriginal) != "[object Object]"){
                 valRetour = valeur.toString();
             }
         }
@@ -140,14 +142,8 @@ afficheDicoProto(DictionnairePrototypes);
 //  reviver
 //-----------------------------------------------
 function reviver(clef, valeur){
-    if(valeur == "underfined"){
-        return undefined;
-    }
-    else if (valeur == "null"){
-        return null;
-    }
-
-    if(clef == "valeur"){
-        return new DictionnairePrototypes[this["constructeur"]]
-    }
+    console.log("clef :", clef, "\nvaleur :", valeur);
 }
+
+
+JSON.parse(instanceTest, reviver);

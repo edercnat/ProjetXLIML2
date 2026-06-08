@@ -60,6 +60,8 @@ JSON.stringify(new Date(), replacerAffiche);
 //console.log(undefined == null);
 
 //console.log(typeof null);
-for(const clef in test){
-    console.log(clef);
-}
+// for(const clef in test){
+//     console.log(clef);
+// }
+
+console.log(Object.prototype.toString.call(test), objTest.constructor.name);
