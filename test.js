@@ -1,86 +1,6 @@
-const strategiesNatives = {
-    'Date': (valeur) => ({ __type: 'Date', data: valeur.toISOString() }),
-    'Set':  (valeur) => ({ __type: 'Set', data: Array.from(valeur) }),
-    'Map':  (valeur) => ({ __type: 'Map', data: Array.from(valeur.entries()) }),
-    'RegExp': (valeur) => ({ __type: 'RegExp', source: valeur.source, flags: valeur.flags })
-};
-
-
-
-
-const reconstructeursNatifs = {
-    'Date': (valeur) => new Date(valeur.data),
-    'Set':  (valeur) => new Set(valeur.data),
-    'Map':  (valeur) => new Map(valeur.data),
-    'RegExp': (valeur) => new RegExp(valeur.source, valeur.flags),
-    'BigInt': (valeur) => BigInt(valeur.data),
-    'Infinity': () => Infinity,
-    '-Infinity': () => -Infinity,
-    'NaN': () => NaN
-};
-
-
-
-
-function replacer(clef, valeur)
-{
-    if (typeof valeur === 'number' && !isFinite(valeur))
-    {
-        return { __type: isNaN(valeur) ? 'NaN' : (valeur > 0 ? 'Infinity' : '-Infinity') };
-    }
-    if (typeof valeur === 'bigint') 
-    {
-        return { __type: 'BigInt', data: valeur.toString()};
-    }
-    if (valeur !== null && typeof valeur === "object") 
-    {
-        const nomType = valeur.constructor?.name;
-        if (nomType === "Object" || nomType === "Array")
-        {
-            return valeur;
-        } 
-        if (strategiesNatives[nomType]) 
-        {
-            return strategiesNatives[nomType](valeur);
-        }
-        return {
-            NomDeLaClasse: nomType,
-            Data: {...valeur}
-        };
-    }
-    return valeur;
-}
-
-
-
-function reviver(clef, valeur) {
-    if (valeur !== null && typeof valeur === "object")
-    {
-        if (valeur.__type && reconstructeursNatifs[valeur.__type])
-        {
-            return reconstructeursNatifs[valeur.__type](valeur);
-        }
-        if (valeur.NomDeLaClasse) 
-        {
-            const nomClasse = valeur.NomDeLaClasse;
-            const ClasseReference = globalThis[nomClasse];
-            if (ClasseReference && typeof ClasseReference === "function") 
-            {
-                const instance = Object.create(ClasseReference.prototype);
-                return Object.assign(instance, valeur.Data);
-            }
-            else 
-            {
-                return valeur.Data; 
-            }
-        }
-    }
-    return valeur;
-}
-
-class Test 
-{
-    constructor(parameter) 
+const fs = require('fs');
+class Test {
+    constructor(parameter)
     {
         this.age = 0;
         this.taille = 1.8;
@@ -88,37 +8,146 @@ class Test
     }
     nom()
     {
-        console.log("test");
         return this.name;
     }
-
+}
+const date = new Date(8.64e15);
+const set = new Set(["Vallet", "Dame", "Roi"]);
+const map = new Map([["clef1", 1], ["clef2", 2], [set, 157657651786n], [NaN, Infinity], [Infinity, -Infinity]]);
+const regexp = new RegExp("mot");
+const chaine = "chaine";
+const test = new Test(1);
+const symbol =  Symbol("symbol");
+const erreur = new Error("Erreur", {cause : "rémi"});
+const objTest = {
+    "date" : date,
+    "map" : map,
+    "set" : set,
+    "chaine" : chaine,
+    "test" : test,
+    "regexp" : regexp,
+    "symbol" : symbol,
+    "erreur" : erreur,
+    "null" : null,
+    "undefined" : undefined
 }
 
-//Variables de test et globales
-// const date = new Date(8.64e15);
-// const set = new Set(["Vallet", "Dame", "Roi"]);
-// const map = new Map([["clef1", 1], ["clef2", 2], [set, 157657651786n], [NaN, Infinity], [Infinity, -Infinity]]);
-// const expression = new RegExp("ab+c", "i");
-// const chaine = "chaine";
-// const test = new Test(1);
-// const objTest = {
-//     "date" : date,
-//     "map" : map,
-//     "set" : set,
-//     "chaine" : chaine,
-//     "test" : test,
-//     "piège" : null
-// }
+
+
+const DictionnairePrototypes = {};
+
+
+
+
+
+function afficheAttributs(val){
+    console.log("\n");
+    console.log("Nom constructeur", val.constructor.name);
+    console.log("Typeof", typeof val);
+    console.log("toString", val.toString());
+    console.log("Keys", Object.keys(val));
+    console.log("Value", val.values);
+    console.log("paramètre", val);
+    console.log("Tag", Object.prototype.toString.call(val));
+}
+
+
+
+
+function afficheDicoProto(dico){
+    for(const clef in dico){
+        console.log(clef);
+    }
+}
+
+
+
+
+function estDejaStocke(name, dico){
+    for(clef in dico){
+        if(clef == name){
+            return true;
+        }
+    }
+    return false;
+}
+
+
+
+
+function estTraiteNativement(obj){
+    return typeof obj == "string" || 
+    (typeof obj == "number" && isFinite(obj) && !isNaN(obj))||
+    typeof obj == "boolean" ||
+    typeof obj == "object" && obj.constructor.name == "Object"
+}
+
+
+
+function replacer(clef, valeur){
+    const objetOriginal = this[clef];
+    if(objetOriginal === null)
+    {
+        return "null";
+    }
+    else if(objetOriginal === undefined)
+    {
+        return "undefined";
+    }
+    if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes))
+    {
+        DictionnairePrototypes[objetOriginal.constructor.name] = objetOriginal.prototype
+    }
+    let valRetour = valeur;
+    if(typeof valeur != "string" && !Array.isArray(valeur) && Object.prototype.toString.call(valeur) != "[object Object]")
+    {
+        if(clef != "__tycle_value" && clef != "__tycle_constructor")
+        {
+            valRetour = {
+                "__tycle_constructor" : objetOriginal.constructor.name,
+                "__tycle_value" : objetOriginal
+            }
+        }
+        else if(clef == "valeur"){
+            let valSerialisee = Array.from(objetOriginal);
+            if(valSerialisee.length > 0)
+            {
+                valRetour = valSerialisee;
+            }
+            if(valSerialisee.length == 0 && valeur.constructor.name != "Object")
+            {
+                valRetour = valeur.toString();
+            }
+        }
+    }
+    return valRetour;
+}
+
+
+
+
+
+function reviver(clef, valeur){
+    if(valeur != null)
+    {
+        if(values.__tycle_constructor)
+        {
+
+        }
+    }
+}
+
+
+
+
+
+let coucou = JSON.stringify(objTest, replacer, 2);
+let coucou_des = JSON.parse(coucou, 2);
+
+fs.writeFileSync('calque_personnage.json', coucou, 'utf8');
 
 // console.log(objTest);
-// const test6767 = JSON.stringify(objTest, replacer);
-// console.log(test6767);
-// const test676767 = JSON.parse(test6767, reviver);
-// console.log(test676767);
-
-let tests = new Test(2);
-tests = JSON.stringify(tests, replacer);
-console.log(tests);
-const tests5 = JSON.parse(tests, reviver);
-console.log(tests5);
-tests5.nom();
+// console.log("\n  retour à la ligne \n");
+console.log(coucou);
+// console.log("\n  retour à la ligne \n");
+// console.log(coucou_des);

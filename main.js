@@ -1,124 +1,166 @@
-const strategiesNatives = {
-    'Date': (valeur) => ({ __type: 'Date', data: valeur.toISOString() }),
-    'Set':  (valeur) => ({ __type: 'Set', data: Array.from(valeur) }),
-    'Map':  (valeur) => ({ __type: 'Map', data: Array.from(valeur.entries()) }),
-    'RegExp': (valeur) => ({ __type: 'RegExp', source: valeur.source, flags: valeur.flags })
-};
+//-----------------------------------------------
+//  Variables globales
+//-----------------------------------------------
 
-
-
-
-const reconstructeursNatifs = {
-    'Date': (valeur) => new Date(valeur.data),
-    'Set':  (valeur) => new Set(valeur.data),
-    'Map':  (valeur) => new Map(valeur.data),
-    'RegExp': (valeur) => new RegExp(valeur.source, valeur.flags),
-    'BigInt': (valeur) => BigInt(valeur.data),
-    'Infinity': () => Infinity,
-    '-Infinity': () => -Infinity,
-    'NaN': () => NaN
-};
-
-
-
-
-function replacer(clef, valeur)
-{
-    if (typeof valeur === 'number' && !isFinite(valeur))
-    {
-        return { __type: isNaN(valeur) ? 'NaN' : (valeur > 0 ? 'Infinity' : '-Infinity') };
-    }
-    if (typeof valeur === 'bigint') 
-    {
-        return { __type: 'BigInt', data: valeur.toString()};
-    }
-    if (valeur !== null && typeof valeur === "object") 
-    {
-        const nomType = valeur.constructor?.name;
-        if (nomType === "Object" || nomType === "Array")
-        {
-            return valeur;
-        } 
-        if (strategiesNatives[nomType]) 
-        {
-            return strategiesNatives[nomType](valeur);
-        }
-        return {
-            NomDeLaClasse: nomType,
-            Data: {...valeur}
-        };
-    }
-    return valeur;
-}
-
-
-
-function reviver(clef, valeur) {
-    if (valeur !== null && typeof valeur === "object")
-    {
-        if (valeur.__type && reconstructeursNatifs[valeur.__type])
-        {
-            return reconstructeursNatifs[valeur.__type](valeur);
-        }
-        if (valeur.NomDeLaClasse) 
-        {
-            const nomClasse = valeur.NomDeLaClasse;
-            const ClasseReference = globalThis[nomClasse];
-            if (ClasseReference && typeof ClasseReference === "function") 
-            {
-                const instance = Object.create(ClasseReference.prototype);
-                return Object.assign(instance, valeur.Data);
-            }
-            else 
-            {
-                return valeur.Data; 
-            }
-        }
-    }
-    return valeur;
-}
-
-class Test 
-{
-    constructor(parameter) 
-    {
-        this.age = 0;
-        this.taille = 1.8;
-        this.name = "Laurent";
-    }
-    nom()
-    {
-        console.log("test");
-        return this.name;
-    }
-
-}
+const { json } = require("node:stream/consumers");
+const test = require("node:test");
 
 //Variables de test et globales
-// const date = new Date(8.64e15);
-// const set = new Set(["Vallet", "Dame", "Roi"]);
-// const map = new Map([["clef1", 1], ["clef2", 2], [set, 157657651786n], [NaN, Infinity], [Infinity, -Infinity]]);
-// const expression = new RegExp("ab+c", "i");
-// const chaine = "chaine";
-// const test = new Test(1);
-// const objTest = {
-//     "date" : date,
-//     "map" : map,
-//     "set" : set,
-//     "chaine" : chaine,
-//     "test" : test,
-//     "piège" : null
-// }
+const date = new Date(8.64e15);
+const regexp = new RegExp("mot");
+const chaine = "chaine";
+const symbol =  Symbol("symbol");
+const erreur = new Error("Erreur de chad", {cause : "rémi le goat"});
+const set = new Set(["Vallet", "Dame", "Roi"]);
 
-// console.log(objTest);
-// const test6767 = JSON.stringify(objTest, replacer);
-// console.log(test6767);
-// const test676767 = JSON.parse(test6767, reviver);
-// console.log(test676767);
+//Classe de test
+class Test {
+    constructor(nomP, prenomP) {
+        this.nom = nomP;
+        this.prenom = prenomP;
+        this.age = 0;
+        this.poches = new Map([["Cartes", set], ["Aura", Infinity]]);
+        this.dateNaissance = date;
+        this.typesSpeciaux = [symbol, erreur, chaine, regexp, NaN, 200n, null, undefined];
+        this.objet = {"nom" : "pierre"};
+    }
 
-let tests = new Test(2);
-tests = JSON.stringify(tests, replacer);
-console.log(tests);
-const tests5 = JSON.parse(tests, reviver);
-console.log(tests5);
-tests5.nom();
+    fonctionIgnoree(){
+        return "rien";
+    }
+
+    fonctionInutile(){
+        console.log("Je sers à rien");
+    }
+
+}
+
+const instanceTest = new Test("Chan", "Jackie");
+const DictionnairePrototypes = {}; //Dico des protoypes utilisés
+
+//-----------------------------------------------
+//  Fonctions utiles pour tests et traitement
+//-----------------------------------------------
+function afficheAttributs(val){
+    console.log("\n");
+    console.log("Nom constructeur", val.constructor.name);
+    console.log("Typeof", typeof val);
+    console.log("toString", val.toString());
+    console.log("Keys", Object.keys(val));
+    console.log("Value", val.values);
+    console.log("paramètre", val);
+    console.log("Tag", Object.prototype.toString.call(val));
+}
+
+//Fonction d'affichage du dictionnaire des prototypes
+function afficheDicoProto(dico){
+    for(const clef in dico){
+        console.log(clef, dico[clef]);
+    }
+}
+
+//Fonction qui check si le prototype est déjà stocké dans le dico
+function estDejaStocke(name, dico){
+    for(const clef in dico){
+        if(clef == name){
+            return true;
+        }
+    }
+    return false;
+}
+
+//-----------------------------------------------
+//  Fonction replacer
+//-----------------------------------------------
+
+function replacer(clef, valeur){
+    const objetOriginal = this[clef];
+    
+    //Si c'est nul et undefined, on renvoie la chaîne de caractères pour ne pas les ignorer et éviter les erreurs
+    if(objetOriginal === null){
+        return "__tycle_null";
+    }
+    else if(objetOriginal === undefined){
+        return "__tycle_undefined";
+    }
+
+    //Si la valeur n'est pas stockée dans notre registre des constructeurs, on l'ajoute
+    if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes)){
+        DictionnairePrototypes[objetOriginal.constructor.name] = Object.getPrototypeOf(objetOriginal);
+    }
+    //console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
+
+    //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
+    //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
+    let valRetour = valeur;
+
+    //Nos types primitifs sont les strings, listes et les objets de type dictionnaire.
+    //On ne les traite donc pas
+    //Condition peut être utile plus tard : Object.prototype.toString.call(objetOriginal) != "[object Object]"
+    if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && objetOriginal.constructor.name != "Object"){
+
+        //Si la valeur n'est pas déjà sous forme {
+        //     "constructeur" : constructeur,
+        //     "valeur" : valeur originale
+        // }
+        //On le met sous cette forme avec 
+        if(clef != "__tycle_value" && clef != "__tycle_prototype"){
+            valRetour = {
+                "__tycle_prototype" : objetOriginal.constructor.name,
+                "__tycle_value" : objetOriginal
+            }
+        }
+
+        //Si on est dans une valeur à traiter (donc avec la clef "valeur"), on la traite selon ce que l'on veut
+        else if(clef == "__tycle_value"){
+            let valSerialisee = Array.from(objetOriginal);
+            //Si on peut la convertir en liste
+            if(valSerialisee.length > 0){
+                valRetour = valSerialisee;
+            }
+            //Sinon, on sérialise tout le reste sauf les object de type dictionnaire et les classes
+            if(valSerialisee.length == 0 && Object.prototype.toString.call(objetOriginal) != "[object Object]"){
+                valRetour = valeur.toString();
+            }
+        }
+    }
+    return valRetour;
+}
+
+
+const cc = JSON.stringify(instanceTest, replacer, 2)
+//console.log(cc);
+const pp = JSON.stringify(instanceTest, replacer, 2);
+console.log(pp);
+
+
+
+//-----------------------------------------------
+//  reviver
+//-----------------------------------------------
+function reviver(clef, valeur)
+{
+    if(valeur != null || typeof valeur !== "object")
+    {
+        const val = valeur.__tycle_value;
+        const type = valeur.__tycle_prototype;
+        if(type === "BigInt")
+        {
+            return BigInt(val);
+        }
+        if(type === "Symbol")
+        {
+            return Symbol(val);
+        }
+        if (DictionnairePrototypes[type]) 
+        {
+            const instance = Object.create(classesDisponibles[type].prototype);
+            return Object.assign(instance, data);
+        }
+        return val;
+    }
+    return valeur;
+}
+
+
+console.log(JSON.parse(pp, reviver, 2));
