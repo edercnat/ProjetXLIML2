@@ -2,7 +2,7 @@
 //  Variables globales
 //-----------------------------------------------
 //Variables de test et globales
-const date = new Date(8.64e15);
+const date = new Date("2026-06-08T13:10:39.688Z");
 const regexp = new RegExp("mot");
 const chaine = "chaine";
 const symbol =  Symbol("symbol");
@@ -19,6 +19,8 @@ class Test {
         this.dateNaissance = date;
         this.typesSpeciaux = [symbol, erreur, chaine, regexp, NaN, 200n, null, undefined];
         this.objet = {"nom" : "pierre"};
+        this.bool = true;
+        this.liste = [1,2,3,4];
     }
 
     fonctionIgnoree(){
@@ -30,6 +32,7 @@ class Test {
     }
 
 }
+
 
 const instanceTest = new Test("Chan", "Jackie");
 const DictionnairePrototypes = {};//Dico des protoypes utilisés
@@ -65,6 +68,13 @@ function estDejaStocke(name, dico){
     return false;
 }
 
+//Fonction qui permet de vérifier les types des valeurs désérialisées
+function verifDeserialisation(objet){
+    for(const val in objet){
+        console.log("Val :", val, "\ntype :", typeof objet[val]);
+    }
+}
+
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
@@ -82,7 +92,7 @@ function replacer(clef, valeur){
 
     //Si la valeur n'est pas stockée dans notre registre des constructeurs, on l'ajoute
     if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes)){
-        DictionnairePrototypes[objetOriginal.constructor.name] = Object.getPrototypeOf(objetOriginal);
+        DictionnairePrototypes[objetOriginal.constructor.name] = objetOriginal.constructor;
     }
     //console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
 
@@ -127,23 +137,66 @@ function replacer(clef, valeur){
 //-----------------------------------------------
 //  Affichage et tests
 //-----------------------------------------------
+class testSimple{
+    constructor(){
+        this.nom = "tra";
+        this.prenom = "lala";
+    }
+}
 
+const obj = {
+    "nom" : "tom",
+    "prenom" : "popo",
+    "age" : 2,
+    "date" : date,
+    "num" : NaN,
+    "bigint" : 2314n,
+    "set" : set
+}
+const stringJSON = JSON.stringify(instanceTest, replacer, 2);
+// console.log(stringJSON);
 
-console.log(JSON.stringify(instanceTest, replacer, 2));
+//console.log("Dico des prototypes");
+//afficheDicoProto(DictionnairePrototypes);
 
-console.log("Dico des prototypes");
-afficheDicoProto(DictionnairePrototypes);
-// afficheAttributs(test);
-// afficheAttributs(regexp);
-// afficheAttributs(symbol);
 
 
 //-----------------------------------------------
 //  reviver
 //-----------------------------------------------
 function reviver(clef, valeur){
-    console.log("clef :", clef, "\nvaleur :", valeur);
+    // console.log(clef);
+    //Affichages de test
+    // console.log("--------------------------------------");
+    // console.log("clef :", clef, "\nvaleur : :", valeur);
+    // console.log("objet parent:", this);
+    
+    //Permet de gérer les valeurs null et undefined
+    if(valeur === "__tycle_null"){
+        return null;
+    }
+    else if(valeur === "__tycle_undefined"){
+        return undefined;
+    }
+
+    let valRetour = valeur;
+
+    //Si la valeur a été sérialisée par nos soins
+    if(valeur["__tycle_value"] && clef != ""){
+        const strProto = valeur["__tycle_prototype"];
+        if(strProto == "Number" || strProto == "Symbol" || strProto == "BigInt" || strProto == "Boolean"){
+            valRetour = DictionnairePrototypes[strProto](valeur["__tycle_value"]);
+        }
+        else{
+            valRetour = new DictionnairePrototypes[strProto](valeur["__tycle_value"]);
+        }
+    }
+    return valRetour;
+
 }
 
+const objParse = JSON.parse(stringJSON, reviver);
+console.log("\n-----------------------------\nRésultat");
+console.log(objParse);
 
-JSON.parse(instanceTest, reviver);
+verifDeserialisation(objParse);

@@ -55,7 +55,7 @@ function replacerAffiche(clef, valeur){
 
 test["age"] = 1;
 //console.log(test.age);
-JSON.stringify(new Date(), replacerAffiche);
+//JSON.stringify(new Date(), replacerAffiche);
 //console.log(Array.from(RegExp("mot")), RegExp("mot").toString());
 //console.log(undefined == null);
 
@@ -64,4 +64,7 @@ JSON.stringify(new Date(), replacerAffiche);
 //     console.log(clef);
 // }
 
-console.log(Object.prototype.toString.call(test), objTest.constructor.name);
+// console.log(Object.prototype.toString.call(test), objTest.constructor.name);
+
+// console.log(typeof JSON.stringify({"lala" : 1}))
+console.log(new Date("2026-06-08T13:10:39.688Z"));
