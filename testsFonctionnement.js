@@ -12,6 +12,10 @@ class Test {
         return this.name;
     }
 
+    prenom(){
+        return "lalala";
+    }
+
 }
 
 const date = new Date(8.64e15);
@@ -41,7 +45,7 @@ function replacer(clef, valeur){
 
 
 function replacerAffiche(clef, valeur){
-    console.log(clef, valeur, this[clef]);
+    console.log(clef, valeur, this[clef], typeof this[clef]);
     return valeur;
 }
 // console.log(JSON.stringify(objTest, replacer, 2));
@@ -51,8 +55,11 @@ function replacerAffiche(clef, valeur){
 
 test["age"] = 1;
 //console.log(test.age);
-JSON.stringify(undefined, replacerAffiche);
+JSON.stringify(new Date(), replacerAffiche);
 //console.log(Array.from(RegExp("mot")), RegExp("mot").toString());
-console.log(undefined == null);
+//console.log(undefined == null);
 
-console.log(typeof null);
+//console.log(typeof null);
+for(const clef in test){
+    console.log(clef);
+}

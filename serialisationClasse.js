@@ -1,41 +1,36 @@
 //-----------------------------------------------
 //  Variables globales
 //-----------------------------------------------
-//Classe de test
-class Test {
-    constructor(parameter) {
-        this.age = 0;
-        this.taille = 1.8;
-        this.name = "Laurent";
-    }
-
-    nom(){
-        return this.name;
-    }
-
-}
-
 //Variables de test et globales
 const date = new Date(8.64e15);
-const set = new Set(["Vallet", "Dame", "Roi"]);
-const map = new Map([["clef1", 1], ["clef2", 2], [set, 157657651786n, 6.7], [NaN, Infinity], [Infinity, -Infinity]]);
 const regexp = new RegExp("mot");
 const chaine = "chaine";
-const test = new Test(1);
 const symbol =  Symbol("symbol");
 const erreur = new Error("Erreur de chad", {cause : "rémi le goat"});
-const objTest = {
-    "date" : date,
-    "map" : map,
-    "set" : set,
-    "chaine" : chaine,
-    "test" : test,
-    "regexp" : regexp,
-    "symbol" : symbol,
-    "erreur" : erreur,
-    "null" : null,
-    "undefined" : undefined
+const set = new Set(["Vallet", "Dame", "Roi"]);
+
+//Classe de test
+class Test {
+    constructor(nomP, prenomP) {
+        this.nom = nomP;
+        this.prenom = prenomP;
+        this.age = 0;
+        this.poches = new Map([["Cartes", set], ["Aura", Infinity]]);
+        this.dateNaissance = date;
+        this.typesSpeciaux = [symbol, erreur, chaine, regexp, NaN, 200n, null, undefined];
+    }
+
+    fonctionIgnoree(){
+        return "rien";
+    }
+
+    fonctionInutile(){
+        console.log("Je sers à rien");
+    }
+
 }
+
+const instanceTest = new Test("Chan", "Jackie");
 const DictionnairePrototypes = {};//Dico des protoypes utilisés
 
 //-----------------------------------------------
@@ -69,66 +64,21 @@ function estDejaStocke(name, dico){
     return false;
 }
 
-//Fonction qui renvoie true si l'objet est traité nativement
-function estTraiteNativement(obj){
-    return typeof obj == "string" || 
-    (typeof obj == "number" && isFinite(obj) && !isNaN(obj))||
-    typeof obj == "boolean" ||
-    typeof obj == "object" && obj.constructor.name == "Object"
-}
-
-
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
-
-// function replacerSave(clef, valeur){
-//     //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
-//     //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
-//     const objetOriginal = this[clef];
-//     let valRetour = valeur;
-
-//     console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
-
-//     if(!estTraiteNativement(objetOriginal)){
-//         if(clef != "valeur" && clef != "constructeur" && !Array.isArray(objetOriginal)){
-//             //On ajoute la valeur dans le dico si elle n'a pas déjà été traitée
-//             if(!estDejaStocke(valeur.constructor,DictionnairePrototypes)){
-//                 DictionnairePrototypes[this[clef].constructor.name] = Object.getPrototypeOf(objetOriginal);
-//             }
-//             return {
-//                 "constructeur" : objetOriginal.constructor.name,
-//                 "valeur" : valRetour
-//             };
-//         }
-
-//         if(clef == "valeur"){            
-//             valeurRetour = Array.from(objetOriginal);
-//             if(valeurRetour.length > 0){
-//                 return Array.from(objetOriginal);
-//             }
-//             else{
-//                 if(typeof valeur != "object" || typeof valeur == "regexp"){
-//                     valRetour = valeur.toString();
-//                 }
-//             }
-//         }
-//     }
-//     //On retourne la valeur de base si elle est traitée nativement ou déjà traité
-//     return valRetour;
-// }
-
 
 function replacer(clef, valeur){
     const objetOriginal = this[clef];
     
     //Si c'est nul et undefined, on renvoie la chaîne de caractères pour ne pas les ignorer et éviter les erreurs
     if(objetOriginal === null){
-        return "null";
+        return "__tycle_null";
     }
     else if(objetOriginal === undefined){
-        return "undefined";
+        return "__tycle_undefined";
     }
+
     //Si la valeur n'est pas stockée dans notre registre des constructeurs, on l'ajoute
     if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes)){
         DictionnairePrototypes[objetOriginal.constructor.name] = Object.getPrototypeOf(objetOriginal);
@@ -143,22 +93,20 @@ function replacer(clef, valeur){
     //On ne les traite donc pas
     if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && Object.prototype.toString.call(objetOriginal) != "[object Object]"){
 
-        
-
         //Si la valeur n'est pas déjà sous forme {
         //     "constructeur" : constructeur,
         //     "valeur" : valeur originale
         // }
         //On le met sous cette forme avec 
-        if(clef != "valeur" && clef != "constructeur"){
+        if(clef != "__tycle_value" && clef != "__tycle_prototype"){
             valRetour = {
-                "constructeur" : objetOriginal.constructor.name,
-                "valeur" : objetOriginal
+                "__tycle_prototype" : objetOriginal.constructor.name,
+                "__tycle_value" : objetOriginal
             }
         }
 
         //Si on est dans une valeur à traiter (donc avec la clef "valeur"), on la traite selon ce que l'on veut
-        else if(clef == "valeur"){
+        else if(clef == "__tycle_value"){
             let valSerialisee = Array.from(objetOriginal);
             //Si on peut la convertir en liste
             if(valSerialisee.length > 0){
@@ -179,10 +127,27 @@ function replacer(clef, valeur){
 //-----------------------------------------------
 
 
-console.log(JSON.stringify(objTest, replacer, 2));
+console.log(JSON.stringify(instanceTest, replacer, 2));
 
 console.log("Dico des prototypes");
 afficheDicoProto(DictionnairePrototypes);
 // afficheAttributs(test);
 // afficheAttributs(regexp);
 // afficheAttributs(symbol);
+
+
+//-----------------------------------------------
+//  reviver
+//-----------------------------------------------
+function reviver(clef, valeur){
+    if(valeur == "underfined"){
+        return undefined;
+    }
+    else if (valeur == "null"){
+        return null;
+    }
+
+    if(clef == "valeur"){
+        return new DictionnairePrototypes[this["constructeur"]]
+    }
+}
