@@ -41,7 +41,7 @@ class TestHeritier extends Test{
     }
 }
 
-
+let buffer = new Map();
 
 //-------------------------------------------------------------
 const DictionnairePrototypes = {};//Dico des protoypes utilisés
