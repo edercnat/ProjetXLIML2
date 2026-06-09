@@ -41,6 +41,19 @@ class TestHeritier extends Test{
     }
 }
 
+class Cycle{
+    constructor(){
+        this.a = 2;
+        this.a = this.b;
+        this.b= this.a;
+    }
+}
+
+const objCycle = {
+    "clef1" : 1,
+    "clef2" : 1
+}
+objCycle["clef2"] = objCycle;
 let buffer = new Map();
 
 //-------------------------------------------------------------
@@ -88,63 +101,22 @@ function verifDeserialisation(objet){
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
-
+let compteur = 0;
+function newID(){
+    let nID = compteur;
+    compteur++;
+    return "__tycle_ref_" + nID;
+}
 function replacer(clef, valeur){
-    const objetOriginal = this[clef];
-    
-    //Si c'est nul et undefined, on renvoie la chaîne de caractères pour ne pas les ignorer et éviter les erreurs
-    if(objetOriginal === null){
-        return "__tycle_null";
-    }
-    else if(objetOriginal === undefined){
-        return "__tycle_undefined";
-    }
-
-    //Si la valeur n'est pas stockée dans notre registre des constructeurs, on l'ajoute
-    if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes)){
-        DictionnairePrototypes[objetOriginal.constructor.name] = objetOriginal.constructor;
-    }
-    //console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
-
-    //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
-    //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
     let valRetour = valeur;
-
-    //Nos types primitifs sont les strings, listes et les objets de type dictionnaire.
-    //On ne les traite donc pas
-    //Condition peut être utile plus tard : Object.prototype.toString.call(objetOriginal) != "[object Object]"
-
-    if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && objetOriginal.constructor.name != "Object" && objetOriginal.constructor.name != "Boolean"){
-
-        //Si la valeur n'est pas déjà sous forme {
-        //     "constructeur" : constructeur,
-        //     "valeur" : valeur originale
-        // }
-        //On le met sous cette forme avec 
-        if(clef != "__tycle_value" && clef != "__tycle_prototype"){
-            valRetour = {
-                "__tycle_prototype" : objetOriginal.constructor.name,
-                "__tycle_value" : objetOriginal
-            }
-        }
-
-        //Si on est dans une valeur à traiter (donc avec la clef "valeur"), on la traite selon ce que l'on veut
-        else if(clef == "__tycle_value"){
-            let valSerialisee = Array.from(objetOriginal);
-            //Si on peut la convertir en liste
-            if(valSerialisee.length > 0){
-                valRetour = valSerialisee;
-            }
-            //Sinon, on sérialise tout le reste sauf les object de type dictionnaire et les classes
-            if(valSerialisee.length == 0 && Object.prototype.toString.call(objetOriginal) != "[object Object]"){
-                if(objetOriginal.constructor.name === "Symbol"){
-                    valRetour = objetOriginal.description;
-                }
-                else{
-                    valRetour = valeur.toString();
-                }
-            }
-        }
+    console.log("\n LALDOKQSKF");
+    console.log(clef);
+    console.log(buffer);
+    if(!(buffer.has(valeur))){
+        buffer.set(valeur, newID(compteur));
+    }
+    else{
+        valRetour = buffer.get(valRetour);
     }
     return valRetour;
 }
@@ -206,14 +178,14 @@ function reviver(clef, valeur){
 
 
 
-const stringJSON = JSON.stringify(instanceHeritier, replacer, 2);
-// console.log(stringJSON);
+const stringJSON = JSON.stringify(objCycle, replacer, 2);
+console.log(stringJSON);
 
 // console.log("Dico des prototypes");
-// afficheDicoProto(DictionnairePrototypes);
+// // afficheDicoProto(DictionnairePrototypes);
 
-const objParse = JSON.parse(stringJSON, reviver);
-console.log("\n-----------------------------\nRésultat");
-console.log(objParse);
+// const objParse = JSON.parse(stringJSON, reviver);
+// console.log("\n-----------------------------\nRésultat");
+// console.log(objParse);
 
-verifDeserialisation(objParse);
+// verifDeserialisation(objParse);

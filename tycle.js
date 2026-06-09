@@ -42,7 +42,64 @@ class TestHeritier extends Test{
 }
 
 
+//  TESTS DE GEMINI PRIME 
+// 1. Classe secondaire pour tester l'héritage et les cycles
+class SousComposant {
+    constructor(nom) {
+        this.nom = nom;
+        this.parent = null; // Accueillera une référence vers l'objet principal
+    }
+}
 
+// 2. Classe principale contenant le "Crash Test"
+class ObjetTestPrincipal {
+    constructor() {
+        // --- Primitives de base ---
+        this.chaine = "Test de sérialisation";
+        this.entier = 42;
+        this.vrai = true;
+        this.faux = false;
+
+        // --- Le vide et l'absence ---
+        this.valeurNulle = null;
+        this.valeurNonDefinie = undefined;
+
+        // --- Les Nombres spéciaux (qui cassent le JSON natif) ---
+        this.notANumber = NaN;
+        this.infiniPositif = Infinity;
+        this.infiniNegatif = -Infinity;
+
+        // --- Les Primitives complexes ---
+        this.grandEntier = 9007199254740992n; // BigInt
+        this.symboleCache = Symbol("symbole_secret");
+
+        // --- Les Objets Natifs (nécessitant leur constructeur) ---
+        this.dateAujourdhui = new Date();
+        this.expressionReguliere = /tycle[0-9]+/gi;
+        this.erreurFatale = new Error("Ceci est une erreur de test simulée");
+
+        // --- Les Itérables et Structures ---
+        this.tableauSimple = [1, "deux", false];
+        this.tableauATrous = [1, , 3]; // Sparse array (tableau avec un <empty item>)
+        
+        this.maMap = new Map();
+        this.maMap.set("clef_1", "Valeur Map 1");
+        this.maMap.set("clef_2", 100);
+
+        this.monSet = new Set();
+        this.monSet.add("Valeur unique A");
+        this.monSet.add("Valeur unique B");
+
+        // --- RÉFÉRENCES CIRCULAIRES ---
+        // 1. Cycle Bidirectionnel (Parent <-> Enfant)
+        this.enfant = new SousComposant("Composant A");
+        this.enfant.parent = this; 
+
+        // 2. Auto-référence pure (L'objet pointe vers lui-même)
+        this.cloneDeMoi = this; 
+    }
+}
+const lastTest = new ObjetTestPrincipal();
 //-------------------------------------------------------------
 const DictionnairePrototypes = {};//Dico des protoypes utilisés
 const instanceTest = new Test("james", "lebron");
@@ -88,7 +145,14 @@ function verifDeserialisation(objet){
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
+let compteur = 0;
+let buffer = new Map();
 
+function newID(){
+    let nID = compteur;
+    compteur++;
+    return "__tycle_ref_" + nID;
+}
 function replacer(clef, valeur){
     const objetOriginal = this[clef];
     
@@ -106,14 +170,26 @@ function replacer(clef, valeur){
     }
     //console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
 
+    //On sérialise seulement les objets
+    if(clef !== "__tycle_value" && clef !== "__tycle_prototype" && typeof objetOriginal === "object") {
+        //Si on référence une valeur déjà enregistrée
+        if(buffer.has(objetOriginal)) {
+            return buffer.get(objetOriginal);
+        } 
+        //Sinon on l'ajoute au registre
+        else {
+            buffer.set(objetOriginal, newID());
+        }
+    }
     //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
     //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
     let valRetour = valeur;
 
+
+        
     //Nos types primitifs sont les strings, listes et les objets de type dictionnaire.
     //On ne les traite donc pas
     //Condition peut être utile plus tard : Object.prototype.toString.call(objetOriginal) != "[object Object]"
-
     if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && objetOriginal.constructor.name != "Object" && objetOriginal.constructor.name != "Boolean"){
 
         //Si la valeur n'est pas déjà sous forme {
@@ -146,8 +222,11 @@ function replacer(clef, valeur){
             }
         }
     }
+    
+    
     return valRetour;
 }
+
 
 
 //-----------------------------------------------
@@ -174,6 +253,7 @@ function reviver(clef, valeur){
             console.log(`Erreur dans reviver pour le constructeur de ${prototypeString}, il n'est pas défini`);
             return valeurBrute;
         }
+
         try{
             if(prototypeString === "Number" || prototypeString === "BigInt" || prototypeString === "Symbol"){
                 valRetour = DictionnairePrototypes[prototypeString](valeurBrute);
@@ -187,6 +267,7 @@ function reviver(clef, valeur){
                 else{
                     valRetour = new DictionnairePrototypes[prototypeString](valeurBrute);
                 }
+
             }
         }
         catch(err){
@@ -195,6 +276,17 @@ function reviver(clef, valeur){
         }
         
     }
+    
+    if(typeof valRetour === "string" && valeur.includes("__tycle_ref_")){
+        if(buffer.has(valRetour)){
+            valRetour = buffer.get(newID(compteur))
+        }
+    }    
+
+    if(typeof valRetour === "object" && clef !== "__tycle_value" && clef !== "__tycle_prototype"){
+        buffer.set(newID(compteur), valRetour);
+    }
+    
     return valRetour;
 }
 
@@ -203,17 +295,20 @@ function reviver(clef, valeur){
 //  Affichage et tests
 //-----------------------------------------------
 
+// instanceHeritier.bool = instanceHeritier;
+// instanceHeritier.poches.set(["zzzzz", instanceHeritier.poches]);
 
+const stringJSON = JSON.stringify(lastTest, replacer, 2);
+console.log(stringJSON);
 
-
-const stringJSON = JSON.stringify(instanceHeritier, replacer, 2);
-// console.log(stringJSON);
-
+//console.log(buffer);
 // console.log("Dico des prototypes");
 // afficheDicoProto(DictionnairePrototypes);
+buffer.clear();
+compteur = 0;
 
 const objParse = JSON.parse(stringJSON, reviver);
 console.log("\n-----------------------------\nRésultat");
 console.log(objParse);
-
-verifDeserialisation(objParse);
+console.log(buffer);
+//verifDeserialisation(objParse);
