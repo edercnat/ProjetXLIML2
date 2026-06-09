@@ -34,11 +34,21 @@ class Test {
 }
 
 
-const instanceTest = new Test("Chan", "Jackie");
-const DictionnairePrototypes = {};//Dico des protoypes utilisés
+class TestHeritier extends Test{
+    constructor(){
+        super("lebron", "james");
+        this.particularite = "TOUT SIMPLEMENT GOAT";
+    }
+}
 
+
+
+//-------------------------------------------------------------
+const DictionnairePrototypes = {};//Dico des protoypes utilisés
+const instanceTest = new Test("james", "lebron");
+const instanceHeritier = new TestHeritier();
 //-----------------------------------------------
-//  Fonctions utiles pour tests et traitement
+//  Fonctions utiles pour tests et dévéloppement
 //-----------------------------------------------
 function afficheAttributs(val){
     console.log("\n");
@@ -103,7 +113,8 @@ function replacer(clef, valeur){
     //Nos types primitifs sont les strings, listes et les objets de type dictionnaire.
     //On ne les traite donc pas
     //Condition peut être utile plus tard : Object.prototype.toString.call(objetOriginal) != "[object Object]"
-    if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && objetOriginal.constructor.name != "Object"){
+
+    if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && objetOriginal.constructor.name != "Object" && objetOriginal.constructor.name != "Boolean"){
 
         //Si la valeur n'est pas déjà sous forme {
         //     "constructeur" : constructeur,
@@ -126,7 +137,12 @@ function replacer(clef, valeur){
             }
             //Sinon, on sérialise tout le reste sauf les object de type dictionnaire et les classes
             if(valSerialisee.length == 0 && Object.prototype.toString.call(objetOriginal) != "[object Object]"){
-                valRetour = valeur.toString();
+                if(objetOriginal.constructor.name === "Symbol"){
+                    valRetour = objetOriginal.description;
+                }
+                else{
+                    valRetour = valeur.toString();
+                }
             }
         }
     }
@@ -135,42 +151,9 @@ function replacer(clef, valeur){
 
 
 //-----------------------------------------------
-//  Affichage et tests
+//  Reviver
 //-----------------------------------------------
-class testSimple{
-    constructor(){
-        this.nom = "tra";
-        this.prenom = "lala";
-    }
-}
-
-const obj = {
-    "nom" : "tom",
-    "prenom" : "popo",
-    "age" : 2,
-    "date" : date,
-    "num" : NaN,
-    "bigint" : 2314n,
-    "set" : set
-}
-const stringJSON = JSON.stringify(instanceTest, replacer, 2);
-// console.log(stringJSON);
-
-//console.log("Dico des prototypes");
-//afficheDicoProto(DictionnairePrototypes);
-
-
-
-//-----------------------------------------------
-//  reviver
-//-----------------------------------------------
-function reviver(clef, valeur){
-    // console.log(clef);
-    //Affichages de test
-    // console.log("--------------------------------------");
-    // console.log("clef :", clef, "\nvaleur : :", valeur);
-    // console.log("objet parent:", this);
-    
+function reviver(clef, valeur){    
     //Permet de gérer les valeurs null et undefined
     if(valeur === "__tycle_null"){
         return null;
@@ -182,18 +165,52 @@ function reviver(clef, valeur){
     let valRetour = valeur;
 
     //Si la valeur a été sérialisée par nos soins
-    if(valeur["__tycle_value"] && clef != ""){
-        const strProto = valeur["__tycle_prototype"];
-        if(strProto == "Number" || strProto == "Symbol" || strProto == "BigInt" || strProto == "Boolean"){
-            valRetour = DictionnairePrototypes[strProto](valeur["__tycle_value"]);
+    if(valeur["__tycle_value"] && typeof valeur === "object"){
+        const prototypeString = valeur["__tycle_prototype"];
+        const valeurBrute = valeur["__tycle_value"];
+        const constructeur = DictionnairePrototypes[prototypeString];
+
+        if(!constructeur){
+            console.log(`Erreur dans reviver pour le constructeur de ${prototypeString}, il n'est pas défini`);
+            return valeurBrute;
         }
-        else{
-            valRetour = new DictionnairePrototypes[strProto](valeur["__tycle_value"]);
+        try{
+            if(prototypeString === "Number" || prototypeString === "BigInt" || prototypeString === "Symbol"){
+                valRetour = DictionnairePrototypes[prototypeString](valeurBrute);
+            }
+            else{
+                //Si c'est une classe
+                if(typeof valeurBrute === "object"){
+                    valRetour = Object.create(DictionnairePrototypes[prototypeString].prototype);
+                    Object.assign(valRetour, valeurBrute);
+                }
+                else{
+                    valRetour = new DictionnairePrototypes[prototypeString](valeurBrute);
+                }
+            }
         }
+        catch(err){
+            console.error(`Échec critique lors de l'instanciation de ${prototypeString} :`, err.message);
+            return valeurBrute;
+        }
+        
     }
     return valRetour;
-
 }
+
+
+//-----------------------------------------------
+//  Affichage et tests
+//-----------------------------------------------
+
+
+
+
+const stringJSON = JSON.stringify(instanceHeritier, replacer, 2);
+// console.log(stringJSON);
+
+// console.log("Dico des prototypes");
+// afficheDicoProto(DictionnairePrototypes);
 
 const objParse = JSON.parse(stringJSON, reviver);
 console.log("\n-----------------------------\nRésultat");
