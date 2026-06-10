@@ -1,0 +1,25 @@
+{
+  "name": "projetxliml2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Tycle.js",
+  "scripts": {
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edercnat/ProjetXLIML2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/edercnat/ProjetXLIML2/issues"
+  },
+  "homepage": "https://github.com/edercnat/ProjetXLIML2#readme",
+  "devDependencies": {
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  }
+}
