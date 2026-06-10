@@ -99,11 +99,7 @@ class ObjetTestPrincipal {
         this.cloneDeMoi = this; 
     }
 }
-const lastTest = new ObjetTestPrincipal();
-//-------------------------------------------------------------
-const DictionnairePrototypes = {};//Dico des protoypes utilisés
-const instanceTest = new Test("james", "lebron");
-const instanceHeritier = new TestHeritier();
+
 //-----------------------------------------------
 //  Fonctions utiles pour tests et dévéloppement
 //-----------------------------------------------
@@ -145,8 +141,7 @@ function verifDeserialisation(objet){
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
-let compteur = 0;
-let buffer = new Map();
+
 
 function newID(){
     let nID = compteur;
@@ -155,7 +150,6 @@ function newID(){
 }
 function replacer(clef, valeur){
     const objetOriginal = this[clef];
-    
     //Si c'est nul et undefined, on renvoie la chaîne de caractères pour ne pas les ignorer et éviter les erreurs
     if(objetOriginal === null){
         return "__tycle_null";
@@ -163,30 +157,13 @@ function replacer(clef, valeur){
     else if(objetOriginal === undefined){
         return "__tycle_undefined";
     }
-
     //Si la valeur n'est pas stockée dans notre registre des constructeurs, on l'ajoute
     if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes)){
         DictionnairePrototypes[objetOriginal.constructor.name] = objetOriginal.constructor;
     }
-    //console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
-
-    //On sérialise seulement les objets
-    if(clef !== "__tycle_value" && clef !== "__tycle_prototype" && typeof objetOriginal === "object") {
-        //Si on référence une valeur déjà enregistrée
-        if(buffer.has(objetOriginal)) {
-            return buffer.get(objetOriginal);
-        } 
-        //Sinon on l'ajoute au registre
-        else {
-            buffer.set(objetOriginal, newID());
-        }
-    }
     //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
     //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
-    let valRetour = valeur;
-
-
-        
+    let valRetour = valeur;   
     //Nos types primitifs sont les strings, listes et les objets de type dictionnaire.
     //On ne les traite donc pas
     //Condition peut être utile plus tard : Object.prototype.toString.call(objetOriginal) != "[object Object]"
@@ -223,7 +200,6 @@ function replacer(clef, valeur){
         }
     }
     
-    
     return valRetour;
 }
 
@@ -232,7 +208,7 @@ function replacer(clef, valeur){
 //-----------------------------------------------
 //  Reviver
 //-----------------------------------------------
-function reviver(clef, valeur){    
+function reviver(clef, valeur){   
     //Permet de gérer les valeurs null et undefined
     if(valeur === "__tycle_null"){
         return null;
@@ -277,15 +253,10 @@ function reviver(clef, valeur){
         
     }
     
-    if(typeof valRetour === "string" && valeur.includes("__tycle_ref_")){
-        if(buffer.has(valRetour)){
-            valRetour = buffer.get(newID(compteur))
-        }
-    }    
+    
+   
 
-    if(typeof valRetour === "object" && clef !== "__tycle_value" && clef !== "__tycle_prototype"){
-        buffer.set(newID(compteur), valRetour);
-    }
+    
     
     return valRetour;
 }
@@ -297,18 +268,30 @@ function reviver(clef, valeur){
 
 // instanceHeritier.bool = instanceHeritier;
 // instanceHeritier.poches.set(["zzzzz", instanceHeritier.poches]);
-
+console.log("---------------\n sérialisation \n ---------------\n")
+const lastTest = new ObjetTestPrincipal();
+//-------------------------------------------------------------
+const DictionnairePrototypes = {};//Dico des protoypes utilisés
+const instanceTest = new Test("james", "lebron");
+const instanceHeritier = new TestHeritier();
+let compteur = 0;
+let buffer = new Map();
+let etape = 0;
 const stringJSON = JSON.stringify(lastTest, replacer, 2);
-console.log(stringJSON);
+// console.log(stringJSON);
 
-//console.log(buffer);
+// console.log("-----------------\n buffer");
+// console.log(buffer);
 // console.log("Dico des prototypes");
 // afficheDicoProto(DictionnairePrototypes);
 buffer.clear();
 compteur = 0;
+etape = 0;
+console.log("---------------\n désérialisation \n ---------------\n")
 
 const objParse = JSON.parse(stringJSON, reviver);
-console.log("\n-----------------------------\nRésultat");
-console.log(objParse);
-console.log(buffer);
-//verifDeserialisation(objParse);
+// console.log("\n-----------------------------\nRésultat");
+// console.log(objParse);
+// console.log("-----------------\n buffer");
+// console.log(buffer);
+// verifDeserialisation(objParse);
