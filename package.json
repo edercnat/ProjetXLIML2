@@ -4,14 +4,15 @@
   "description": "",
   "main": "Tycle.js",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "build": "vite build"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/edercnat/ProjetXLIML2.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "R3ml29, ClarentHF, edercnat",
   "license": "ISC",
   "type": "module",
   "bugs": {
