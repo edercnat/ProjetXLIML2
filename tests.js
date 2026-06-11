@@ -15,40 +15,40 @@ class SousComposant {
 class ObjetTestPrincipal {
     constructor() {
         // // --- Primitives de base ---
-        // this.chaine = "Test de sérialisation";
-        // this.entier = 42;
-        // this.vrai = true;
-        // this.faux = false;
+        this.chaine = "Test de sérialisation";
+        this.entier = 42;
+        this.vrai = true;
+        this.faux = false;
 
-        // // --- Le vide et l'absence ---
-        // this.valeurNulle = null;
-        // this.valeurNonDefinie = undefined;
+        // --- Le vide et l'absence ---
+        this.valeurNulle = null;
+        this.valeurNonDefinie = undefined;
 
-        // // --- Les Nombres spéciaux (qui cassent le JSON natif) ---
-        // this.notANumber = NaN;
-        // this.infiniPositif = Infinity;
-        // this.infiniNegatif = -Infinity;
+        // --- Les Nombres spéciaux (qui cassent le JSON natif) ---
+        this.notANumber = NaN;
+        this.infiniPositif = Infinity;
+        this.infiniNegatif = -Infinity;
 
-        // // --- Les Primitives complexes ---
-        // this.grandEntier = 9007199254740992n; // BigInt
-        // this.symboleCache = Symbol("symbole_secret");
+        // --- Les Primitives complexes ---
+        this.grandEntier = 9007199254740992n; // BigInt
+        this.symboleCache = Symbol("symbole_secret");
 
-        // // --- Les Objets Natifs (nécessitant leur constructeur) ---
-        // this.dateAujourdhui = new Date();
-        // this.expressionReguliere = /tycle[0-9]+/gi;
-        // this.erreurFatale = new Error("Ceci est une erreur de test simulée");
+        // --- Les Objets Natifs (nécessitant leur constructeur) ---
+        this.dateAujourdhui = new Date();
+        this.expressionReguliere = /tycle[0-9]+/gi;
+        this.erreurFatale = new Error("Ceci est une erreur de test simulée");
 
         // // --- Les Itérables et Structures ---
         this.tableauSimple = [1, "deux", false];
         this.tableauATrous = [1, , 3]; // Sparse array (tableau avec un <empty item>)
         
-        // this.maMap = new Map();
-        // this.maMap.set("clef_1", "Valeur Map 1");
-        // this.maMap.set("clef_2", 100);
+        this.maMap = new Map();
+        this.maMap.set("clef_1", "Valeur Map 1");
+        this.maMap.set("clef_2", 100);
 
-        // this.monSet = new Set();
-        // this.monSet.add("Valeur unique A");
-        // this.monSet.add("Valeur unique B");
+        this.monSet = new Set();
+        this.monSet.add("Valeur unique A");
+        this.monSet.add("Valeur unique B");
 
         // --- RÉFÉRENCES CIRCULAIRES ---
         // 1. Cycle Bidirectionnel (Parent <-> Enfant)
@@ -185,37 +185,119 @@ function replacer(clef, valeur){
             buffer.set(objetOriginal, ("__tycle_ref_" + compteur));
             compteur++;
         }
+    }    
+    return valRetour;
+}
+
+function reviver(clef, valeur){   
+    //Permet de gérer les valeurs null et undefined
+    if(valeur === "__tycle_null"){
+        return null;
     }
+    else if(valeur === "__tycle_undefined"){
+        return undefined;
+    }
+
+    let valRetour = valeur;
+
+    //Si la valeur a été sérialisée par nos soins
+    if(valeur["__tycle_value"] && typeof valeur === "object"){
+        const prototypeString = valeur["__tycle_prototype"];
+        const valeurBrute = valeur["__tycle_value"];
+        const constructeur = DictionnairePrototypes[prototypeString];
+
+        if(!constructeur){
+            console.log(`Erreur dans reviver pour le constructeur de ${prototypeString}, il n'est pas défini`);
+            return valeurBrute;
+        }
+
+        try{
+            if(prototypeString === "Number" || prototypeString === "BigInt" || prototypeString === "Symbol"){
+                valRetour = DictionnairePrototypes[prototypeString](valeurBrute);
+            }
+            else{
+                //Si c'est une classe
+                if(typeof valeurBrute === "object"){
+                    valRetour = Object.create(DictionnairePrototypes[prototypeString].prototype);
+                    Object.assign(valRetour, valeurBrute);
+                }
+                else{
+                    valRetour = new DictionnairePrototypes[prototypeString](valeurBrute);
+                }
+
+            }
+        }
+        catch(err){
+            console.error(`Échec critique lors de l'instanciation de ${prototypeString} :`, err.message);
+            return valeurBrute;
+        }
+        
+    }
+    
+    
+   
+
     
     
     return valRetour;
 }
 
+function serialize(obj, functionReplacer){
+    let buffer = new Map();
+    let compteur = 0;
+
+    const chaineJSON = JSON.stringify(obj, functionReplacer, 2);
+
+    return chaineJSON;
+}
+
+//Fonction qui permet de remplacer les références par les objets référencés
+function remplacementReference(obj){
+    let valRetour = obj;
+    //Si c'est un objet référençable, on l'ajoute au buffer et on augmente le compteur
+    if(typeof valRetour == "object"){
+        buffer.set(("__tycle_ref_" + compteur), valRetour);
+        compteur++;
+        //On rappelle la fonction sur chacun de ses fils
+        for(const fils in valRetour){
+            valRetour[fils] = remplacementReference(valRetour[fils]);
+        }
+    }
+    else if(typeof valRetour === "string" && valRetour.includes("__tycle_ref_")){
+        valRetour = buffer.get(valRetour);
+    }
+
+    return valRetour;
+}
+function deserialize(chaineJSON, functionReplacer){    
+    //Resérialisation des objets qui ne sont pas référencés
+    let objRetour = JSON.parse(chaineJSON, functionReplacer);
+    objRetour = remplacementReference(objRetour);
+    return objRetour;
+}
+
 const lastTest = new ObjetTestPrincipal();
-
-
-let compteur = 0;
 let buffer = new Map();
-
-// console.log("---------------\n sérialisation \n ---------------\n")
-// let etape = 0;
-const stringJSON = JSON.stringify(lastTest, replacer, 2);
+let compteur = 0;
+console.log("------------------------");
+console.log("   Sérialisation");
+console.log("------------------------");
+const stringJSON = serialize(lastTest, replacer);
+console.log("       ***Chaine JSON***");
 console.log(stringJSON);
-
-console.log("-----------------\n buffer");
+console.log("       ***Valeur Buffer***");
 console.log(buffer);
-// console.log("Dico des prototypes");
-// afficheDicoProto(DictionnairePrototypes);
-// buffer.clear();
-// etape = 0;
-// console.log("---------------\n désérialisation \n ---------------\n")
 
-// const objParse = JSON.parse(stringJSON, reviver);
-// console.log("\n-----------------------------\nRésultat");
-// console.log(objParse);
-// console.log("-----------------\n buffer");
-// console.log(buffer);
+buffer.clear();
+compteur = 0;
 
-
+console.log("------------------------");
+console.log("   Désérialisation");
+console.log("------------------------");
+const objParse = deserialize(stringJSON, reviver);
+console.log("       ***Objet désérialisé***");
+console.log(objParse);
+console.log("       ***Valeur Buffer***");
+console.log(buffer);
 
 // verifDeserialisation(objParse);
