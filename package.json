@@ -2,17 +2,16 @@
   "name": "projetxliml2",
   "version": "1.0.0",
   "description": "",
-  "main": "Tycle.js",
+  "main": "tycle.js",
   "scripts": {
-    "test": "vitest",
-    "build": "vite build"
+    "test": "vitest"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/edercnat/ProjetXLIML2.git"
   },
   "keywords": [],
-  "author": "R3ml29, ClarentHF, edercnat",
+  "author": "",
   "license": "ISC",
   "type": "module",
   "bugs": {
@@ -20,7 +19,6 @@
   },
   "homepage": "https://github.com/edercnat/ProjetXLIML2#readme",
   "devDependencies": {
-    "vite": "^8.0.16",
     "vitest": "^4.1.8"
   }
 }

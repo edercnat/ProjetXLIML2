@@ -1,265 +1,179 @@
-export { serialize, deserialize, XlimDataNode };
-
-
+export {serialize, deserialize}
 const DictionnairePrototypes = {};
+let buffer = new Map();
+let compteur = 0;
 
+//-----------------------------------------------
+//  Variables globales
+//-----------------------------------------------
 
-
-
-function serialize(rootObj) {
-    const seenMap = new Map();
-    const registry = [];
-    function traverse(obj) {
-        if (obj === null)
-        {
-            return "__tycle_null";
+//Fonction qui check si le prototype est déjà stocké dans le dico
+function estDejaStocke(name, dico){
+    for(const clef in dico){
+        if(clef == name){
+            return true;
         }
-        if (obj === undefined)
-        {
-            return "__tycle_undefined";
-        } 
-        if (typeof obj !== 'object') {
-            if (typeof obj === 'bigint') 
-            {
-                return { __tycle_bigint: obj.toString() };
-            }
-            if (typeof obj === 'symbol') 
-            {
-                return { __tycle_symbol: obj.toString() };
-            }
-            if (typeof obj === 'number') 
-            {
-                if (Number.isNaN(obj)) return "__tycle_NaN";
-                if (obj === Infinity) return "__tycle_Infinity";
-                if (obj === -Infinity) return "__tycle_-Infinity";
-            }
-            if (typeof obj === 'function')
-            {
-                return null;
-            } 
-            return obj;
-        }
-        if (seenMap.has(obj)) 
-        {
-            return { __refID: seenMap.get(obj) };
-        }
-        const id = registry.length;
-        seenMap.set(obj, id);
-        const isArray = Array.isArray(obj);
-        const isSet = obj instanceof Set;
-        const isMap = obj instanceof Map;
-        const isDate = obj instanceof Date;
-        const isRegex = obj instanceof RegExp;
-        let constructorName = "Object";
-        if (obj.constructor && obj.constructor.name) 
-        {
-            constructorName = obj.constructor.name;
-        }
-        const isCustomClass = !isArray && !isSet && !isMap && !isDate && !isRegex && constructorName !== "Object";
-        if (isCustomClass && !DictionnairePrototypes[constructorName]) 
-        {
-            DictionnairePrototypes[constructorName] = Object.getPrototypeOf(obj);
-        }
-        let registryEntry;
-        let clone;
-        if (isDate) 
-        {
-            registryEntry = { __tycle_prototype: "Date", __tycle_value: obj.toISOString() };
-            registry.push(registryEntry);
-            return { __refID: id }; // Pas besoin de creuser dans une Date
-        } 
-        else if (isRegex) 
-        {
-            registryEntry = { __tycle_prototype: "RegExp", __tycle_value: { source: obj.source, flags: obj.flags } };
-            registry.push(registryEntry);
-            return { __refID: id };
-        } 
-        else if (isSet || isMap) 
-        {
-            clone = [];
-            registryEntry = { __tycle_prototype: constructorName, __tycle_value: clone };
-        } 
-        else if (isCustomClass) 
-        {
-            clone = {};
-            registryEntry = { __tycle_prototype: constructorName, __tycle_value: clone };
-        } 
-        else 
-        {
-            clone = isArray ? [] : {};
-            registryEntry = clone;
-        }
-
-        registry.push(registryEntry);
-        if (isSet) {
-            obj.forEach(value => clone.push(traverse(value)));
-        } 
-        else if (isMap) 
-        {
-            obj.forEach((value, key) => clone.push([traverse(key), traverse(value)]));
-        } 
-        else 
-        {
-            for (const key in obj) 
-            {
-                if (Object.prototype.hasOwnProperty.call(obj, key)) 
-                {
-                    clone[key] = traverse(obj[key]);
-                }
-            }
-        }
-        return { __refID: id };
     }
-
-    traverse(rootObj);
-    return JSON.stringify(registry, null, 2);
+    return false;
 }
 
 
-
-
-
-
-
-
-
-
-
-
-function deserialize(jsonString) 
-{
-    const registry = JSON.parse(jsonString);
-    if (!Array.isArray(registry))
-    {
-        return registry;
+function replacer(clef, valeur){
+    const objetOriginal = this[clef];
+    //Si c'est nul et undefined, on renvoie la chaîne de caractères pour ne pas les ignorer et éviter les erreurs
+    if(objetOriginal === null){
+        return "__tycle_null";
     }
-    const instances = registry.map(entry => {
-        if (entry && typeof entry === 'object' && entry.__tycle_prototype) 
-        {
-            const protoName = entry.__tycle_prototype;
-            const val = entry.__tycle_value;
-
-            if (protoName === "Date") return new Date(val);
-            if (protoName === "RegExp") return new RegExp(val.source, val.flags);
-            if (protoName === "Set") return new Set();
-            if (protoName === "Map") return new Map();
-            const proto = DictionnairePrototypes[protoName] || Object.prototype;
-            return Object.create(proto);
-        }
-        // Types basiques
-        return Array.isArray(entry) ? [] : {};
-    });
-    function resolveValue(val) 
-    {
-        if (val === "__tycle_null") return null;
-        if (val === "__tycle_undefined") return undefined;
-        if (val === "__tycle_NaN") return NaN;
-        if (val === "__tycle_Infinity") return Infinity;
-        if (val === "__tycle_-Infinity") return -Infinity;
-        
-        if (val && typeof val === 'object') 
-        {
-            if ('__tycle_bigint' in val) 
-            {
-                return BigInt(val.__tycle_bigint);
-            }
-            if ('__tycle_symbol' in val) 
-            {
-                const match = val.__tycle_symbol.match(/^Symbol\((.*)\)$/);
-                return Symbol(match ? match[1] : "");
-            }
-            if ('__refID' in val) return instances[val.__refID];
-        }
-        return val;
+    else if(objetOriginal === undefined){
+        return "__tycle_undefined";
     }
+    else if(Object.is(objetOriginal,-0)){
+        return "__tycle_minus_zero";
+    }
+    //Si la valeur n'est pas stockée dans notre registre des constructeurs, on l'ajoute
+    if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes)){
+        DictionnairePrototypes[objetOriginal.constructor.name] = objetOriginal.constructor;
+    }
+    //console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
 
-    // PASSE 2 : Remplissage (On peuple les coquilles en reliant les fils)
-    registry.forEach((entry, i) => {
-        const instance = instances[i];
+    
+    //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
+    //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
+    let valRetour = valeur;
+
+
         
-        // Date et RegExp sont déjà totalement construites à la Passe 1
-        if (instance instanceof Date || instance instanceof RegExp) return;
+    //Nos types primitifs sont les strings, listes et les objets de type dictionnaire.
+    //On ne les traite donc pas
+    //Condition peut être utile plus tard : Object.prototype.toString.call(objetOriginal) != "[object Object]"
+    if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && objetOriginal.constructor.name != "Object" && objetOriginal.constructor.name != "Boolean"){
 
-        // On isole les données à traiter (soit le conteneur plat, soit ce qu'il y a dans __tycle_value)
-        const dataToMap = (entry && entry.__tycle_prototype) ? entry.__tycle_value : entry;
 
-        if (instance instanceof Set) {
-            dataToMap.forEach(item => instance.add(resolveValue(item)));
+        
+
+        //Si la valeur n'est pas déjà sous forme {
+        //     "constructeur" : constructeur,
+        //     "valeur" : valeur originale
+        // }
+        //On le met sous cette forme avec 
+        if(clef !== "__tycle_value" && clef !== "__tycle_prototype"){
+            valRetour = {
+                "__tycle_prototype" : objetOriginal.constructor.name,
+                "__tycle_value" : objetOriginal
+            }
+        }
+        
+        //Si on est dans une valeur à traiter (donc avec la clef "valeur"), on la traite selon ce que l'on veut
+        else if(clef === "__tycle_value"){
+
+            let valSerialisee = Array.from(objetOriginal);
+            //Si on peut la convertir en liste
+            if(valSerialisee.length > 0){
+                valRetour = valSerialisee;
+            }
+            //Sinon, on sérialise tout le reste sauf les object de type dictionnaire et les classes
+            if(valSerialisee.length == 0 && Object.prototype.toString.call(objetOriginal) != "[object Object]"){
+                if(objetOriginal.constructor.name === "Symbol"){
+                    valRetour = objetOriginal.description;
+                }
+                else{
+                    valRetour = valeur.toString();
+                }
+            }
+        }
+    }
+    //On sérialise seulement les objets
+    if(clef !== "__tycle_value" && clef !== "__tycle_prototype" && typeof objetOriginal === "object") {
+        //Si on référence une valeur déjà enregistrée
+        if(buffer.has(objetOriginal)) {
+            return buffer.get(objetOriginal);
         } 
-        else if (instance instanceof Map) {
-            dataToMap.forEach(([k, v]) => instance.set(resolveValue(k), resolveValue(v)));
-        } 
+        //Sinon on l'ajoute au registre
         else {
-            for (const key in dataToMap) {
-                if (Object.prototype.hasOwnProperty.call(dataToMap, key)) {
-                    instance[key] = resolveValue(dataToMap[key]);
+            buffer.set(objetOriginal, ("__tycle_ref_" + compteur));
+            compteur++;
+        }
+    }    
+    return valRetour;
+}
+
+function reviver(clef, valeur){   
+    //Permet de gérer les valeurs null et undefined
+    if(valeur === "__tycle_null"){
+        return null;
+    }
+    else if(valeur === "__tycle_undefined"){
+        return undefined;
+    }
+    else if(valeur === "__tycle_minus_zero"){
+        return -0;
+    }
+    let valRetour = valeur;
+
+    //Si la valeur a été sérialisée par nos soins
+    if(valeur["__tycle_value"] && typeof valeur === "object"){
+        const prototypeString = valeur["__tycle_prototype"];
+        const valeurBrute = valeur["__tycle_value"];
+        const constructeur = DictionnairePrototypes[prototypeString];
+
+        if(!constructeur){
+            console.log(`Erreur dans reviver pour le constructeur de ${prototypeString}, il n'est pas défini`);
+            return valeurBrute;
+        }
+
+        try{
+            if(prototypeString === "Number" || prototypeString === "BigInt" || prototypeString === "Symbol"){
+                valRetour = DictionnairePrototypes[prototypeString](valeurBrute);
+            }
+            else{
+                //Si c'est une classe
+                if(typeof valeurBrute === "object" && prototypeString != "Map" && prototypeString != "Set"){
+                    valRetour = Object.create(DictionnairePrototypes[prototypeString].prototype);
+                    Object.assign(valRetour, valeurBrute);
                 }
+                else{
+                    valRetour = new DictionnairePrototypes[prototypeString](valeurBrute);
+                }
+
             }
         }
-    });
-
-    // La racine du graphe est toujours à l'index 0
-    return instances[0];
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class XlimDataNode {
-    constructor(id) {
-        this.id = id;
-        // Les structures itérables natives (le pire cauchemar de for...in)
-        this.connections = new Set();
-        this.cache = new Map();
-        // Les objets natifs complexes
-        this.timestamp = new Date();
-        this.regex = /[a-z]+/ig;
+        catch(err){
+            console.error(`Échec critique lors de l'instanciation de ${prototypeString} :`, err.message);
+            return valeurBrute;
+        }
+        
     }
+    return valRetour;
 }
 
-// 1. Instanciation des noeuds
-const rootNode = new XlimDataNode("ROOT_001");
-const childA = new XlimDataNode("CHILD_A");
-const childB = new XlimDataNode("CHILD_B");
+function serialize(obj){
+    buffer.clear();
+    compteur = 0;
+    return JSON.stringify(obj, replacer, 2);
+}
 
-// 2. Les symboles (Types uniques invisibles)
-const secretKey = Symbol("clef_secrete");
-rootNode[secretKey] = "Ceci est une donnée cachée par Symbol";
-rootNode.symboleValeur = Symbol("identifiant_symbole");
+//Fonction qui permet de remplacer les références par les objets référencés
+function remplacementReference(obj){
+    let valRetour = obj;
+    //Si c'est un objet référençable, on l'ajoute au buffer et on augmente le compteur
+    if(typeof valRetour == "object" && valRetour != null ){
+        buffer.set(("__tycle_ref_" + compteur), valRetour);
+        compteur++;
+        //On rappelle la fonction sur chacun de ses fils
+        for(const fils in valRetour){
+            valRetour[fils] = remplacementReference(valRetour[fils]);
+        }
+    }
+    else if(typeof valRetour === "string" && valRetour.includes("__tycle_ref_")){
+        valRetour = buffer.get(valRetour);
+    }
 
-// 3. Les anomalies mathématiques et primitives limites
-rootNode.mathLimits = {
-    infiniPositif: Infinity,
-    infiniNegatif: -Infinity,
-    nonNombre: NaN,
-    grandEntier: 9007199254740991n // BigInt (avec le 'n')
-};
-
-// 4. Les types primitifs "vides"
-rootNode.missing = undefined;
-rootNode.void = null;
-
-// 5. Remplissage des Set avec des références circulaires croisées
-rootNode.connections.add(childA);
-rootNode.connections.add(childB);
-childA.connections.add(rootNode); // Boucle dans un Set !
-
-// 6. Remplissage des Map avec des clés objets ET des boucles
-rootNode.cache.set("string_key", childA);
-rootNode.cache.set(childB, "Valeur pour une clé Objet"); // Clé complexe
-childB.cache.set(rootNode, rootNode); // Boucle sur la clé ET la valeur d'une Map !
-
-// 7. L'inclassable : Les fonctions
-rootNode.compute = function() { return this.id; };
+    return valRetour;
+}
+function deserialize(chaineJSON){    
+    //Resérialisation des objets qui ne sont pas référencés
+    buffer.clear();
+    compteur = 0;
+    let objRetour = JSON.parse(chaineJSON, reviver);
+    return remplacementReference(objRetour);
+}
