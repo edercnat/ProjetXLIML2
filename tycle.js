@@ -1,89 +1,18 @@
 //-----------------------------------------------
 //  Variables globales
 //-----------------------------------------------
-
-//  TESTS DE GEMINI PRIME 
-// 1. Classe secondaire pour tester l'héritage et les cycles
-class SousComposant {
-    constructor(nom) {
-        this.nom = nom;
-        this.parent = null; // Accueillera une référence vers l'objet principal
-    }
-}
-
-// 2. Classe principale contenant le "Crash Test"
-class ObjetTestPrincipal {
-    constructor() {
-        // // --- Primitives de base ---
-        this.chaine = "Test de sérialisation";
-        this.entier = 42;
-        this.vrai = true;
-        this.faux = false;
-
-        // --- Le vide et l'absence ---
-        this.valeurNulle = null;
-        this.valeurNonDefinie = undefined;
-
-        // --- Les Nombres spéciaux (qui cassent le JSON natif) ---
-        this.notANumber = NaN;
-        this.infiniPositif = Infinity;
-        this.infiniNegatif = -Infinity;
-
-        // --- Les Primitives complexes ---
-        this.grandEntier = 9007199254740992n; // BigInt
-        this.symboleCache = Symbol("symbole_secret");
-
-        // --- Les Objets Natifs (nécessitant leur constructeur) ---
-        this.dateAujourdhui = new Date();
-        this.expressionReguliere = /tycle[0-9]+/gi;
-        this.erreurFatale = new Error("Ceci est une erreur de test simulée");
-
-        // // --- Les Itérables et Structures ---
-        this.tableauSimple = [1, "deux", false];
-        this.tableauATrous = [1, , 3]; // Sparse array (tableau avec un <empty item>)
-        
-        this.maMap = new Map();
-        this.maMap.set("clef_1", "Valeur Map 1");
-        this.maMap.set("clef_2", 100);
-
-        this.monSet = new Set();
-        this.monSet.add("Valeur unique A");
-        this.monSet.add("Valeur unique B");
-
-        // --- RÉFÉRENCES CIRCULAIRES ---
-        // 1. Cycle Bidirectionnel (Parent <-> Enfant)
-        this.enfant = new SousComposant("Composant A");
-        this.enfant.parent = this; 
-        this.copyDeFou = this.tableauATrous;
-        // 2. Auto-référence pure (L'objet pointe vers lui-même)
-        this.cloneDeMoi = this; 
-    }
-}
-//-------------------------------------------------------------
+//Buffer et compteur qui nous sert à calculer les identifiants et à gérer les références
+let buffer = new Map();
+let compteur = 0;
+//Dictionnaire des prototypes que l'on va utiliser
 const DictionnairePrototypes = {};//Dico des protoypes utilisés
 
-//-----------------------------------------------
-//  Fonctions utiles pour tests et dévéloppement
-//-----------------------------------------------
-function afficheAttributs(val){
-    console.log("\n");
-    console.log("Nom constructeur", val.constructor.name);
-    console.log("Typeof", typeof val);
-    console.log("toString", val.toString());
-    console.log("Keys", Object.keys(val));
-    console.log("Value", val.values);
-    console.log("paramètre", val);
-    console.log("Tag", Object.prototype.toString.call(val));
-}
-
-//Fonction d'affichage du dictionnaire des prototypes
-function afficheDicoProto(dico){
-    for(const clef in dico){
-        console.log(clef, dico[clef]);
-    }
-}
-
-//Fonction qui check si le prototype est déjà stocké dans le dico
+/**
+ * Fonction qui vérifie si le constructeur des instances traitées sont bien déjà référencées dans le dictionnaire
+ * @param  {[string]} name Nom du constructeur qui agit comme la clef de ce dernier.
+ * @param  {[Object]} dico Dictionnaire qui répertorie tous les constructeurs.
+ * @return {[boolean]} Retourne true si l'objet est déjà stocké dans le dictionnaire, false sinon
+ */
 function estDejaStocke(name, dico){
     for(const clef in dico){
         if(clef == name){
@@ -93,19 +22,24 @@ function estDejaStocke(name, dico){
     return false;
 }
 
-//Fonction qui permet de vérifier les types des valeurs désérialisées
-function verifDeserialisation(objet){
-    for(const val in objet){
-        console.log("Val :", val, "\ntype :", typeof objet[val]);
-    }
-}
-
-//-----------------------------------------------
-//  Fonction replacer
-//-----------------------------------------------
+/**
+ * Fonction passée en paramètre de JSON.strinfigy pour sérialiser les objets non-traités nativement pas Javascript
+ * Elle décompose les objets non-natifs sous forme 
+ * {
+ *      "__tycle_prototype" : ID du prototype de l'objet dans le dictionnaire
+ *      "__tycle_value" : valeur sérialisée en string
+ * }
+ * Les objets référencés sont eux remplacés par un identifiant de type :
+ *  "__tycle_instance_XXXX" avec XXXX représentant la position de l'objet lors du traitement descendant de l'arbre
+ * 
+ * Cette fonction traduit tous les types en valeur primitives (bool, string ou Object de type dictionnaire).
+ * Les nombres sont traités différemment pour pouvoir sérialiser les NaN et Infinity.
+ * @param {[string]} clef Normalement un string qui est la clef menant à la valeur à sérialiser
+ * @param {*} valeur Valeur à sérialiser qui peut être déjà modifiée(notamment pour les dates). On prefèrera donc utiliser this[clef] (this étant l'objet parent) qui donne l'objet non retouché
+ * @returns Retourne la valeur sérialisée selon notre format spécifié au dessus 
+ */
 function replacer(clef, valeur){
     const objetOriginal = this[clef];
-
     //Si c'est nul et undefined, on renvoie la chaîne de caractères pour ne pas les ignorer et éviter les erreurs
     if(objetOriginal === null){
         return "__tycle_null";
@@ -113,28 +47,16 @@ function replacer(clef, valeur){
     else if(objetOriginal === undefined){
         return "__tycle_undefined";
     }
-
     //Si la valeur n'est pas stockée dans notre registre des constructeurs, on l'ajoute
     if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes)){
         DictionnairePrototypes[objetOriginal.constructor.name] = objetOriginal.constructor;
-    }
-    //console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
-
-    
+    }    
     //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
     //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
     let valRetour = valeur;
-
-
-        
     //Nos types primitifs sont les strings, listes et les objets de type dictionnaire.
     //On ne les traite donc pas
-    //Condition peut être utile plus tard : Object.prototype.toString.call(objetOriginal) != "[object Object]"
     if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && objetOriginal.constructor.name != "Object" && objetOriginal.constructor.name != "Boolean"){
-
-
-        
-
         //Si la valeur n'est pas déjà sous forme {
         //     "constructeur" : constructeur,
         //     "valeur" : valeur originale
@@ -146,10 +68,8 @@ function replacer(clef, valeur){
                 "__tycle_value" : objetOriginal
             }
         }
-        
         //Si on est dans une valeur à traiter (donc avec la clef "valeur"), on la traite selon ce que l'on veut
         else if(clef === "__tycle_value"){
-
             let valSerialisee = Array.from(objetOriginal);
             //Si on peut la convertir en liste
             if(valSerialisee.length > 0){
@@ -174,13 +94,24 @@ function replacer(clef, valeur){
         } 
         //Sinon on l'ajoute au registre
         else {
-            buffer.set(objetOriginal, ("__tycle_ref_" + compteur));
+            buffer.set(objetOriginal, ("__tycle_instance_" + compteur));
             compteur++;
         }
     }    
     return valRetour;
 }
-
+/**
+ * Fonction qui permet de sérialiser les objets en JSON, elle remet le buffer et le compteur d'ID à zéro
+ * @param {*}  obj Objet à sérialiser 
+ * @param {*} functionReplacer Fonction replacer que l'on passe en paramètre de cette fonction, elle sera mise en paramètre lors de l'appel à stringify
+ * @returns Elle retourne l'objet entièrement sérialisé en format JSON. La map contient les objets en clef et leur identifiants en valeur.
+ */
+function serialize(obj, functionReplacer){
+    buffer.clear();
+    compteur = 0;
+    const chaineJSON = JSON.stringify(obj, functionReplacer, 2);
+    return chaineJSON;
+}
 function reviver(clef, valeur){   
     //Permet de gérer les valeurs null et undefined
     if(valeur === "__tycle_null"){
@@ -208,7 +139,7 @@ function reviver(clef, valeur){
             }
             else{
                 //Si c'est une classe
-                if(typeof valeurBrute === "object"){
+                if(typeof valeurBrute === "object" && prototypeString !== "Set" && prototypeString !== "Map"){
                     valRetour = Object.create(DictionnairePrototypes[prototypeString].prototype);
                     Object.assign(valRetour, valeurBrute);
                 }
@@ -225,57 +156,33 @@ function reviver(clef, valeur){
     return valRetour;
 }
 
-function serialize(obj, functionReplacer){
-    const chaineJSON = JSON.stringify(obj, functionReplacer, 2);
-    return chaineJSON;
-}
 
 //Fonction qui permet de remplacer les références par les objets référencés
 function remplacementReference(obj){
     let valRetour = obj;
     //Si c'est un objet référençable, on l'ajoute au buffer et on augmente le compteur
     if(typeof valRetour == "object"){
-        buffer.set(("__tycle_ref_" + compteur), valRetour);
+        buffer.set(("__tycle_instance_" + compteur), valRetour);
         compteur++;
         //On rappelle la fonction sur chacun de ses fils
         for(const fils in valRetour){
             valRetour[fils] = remplacementReference(valRetour[fils]);
         }
     }
-    else if(typeof valRetour === "string" && valRetour.includes("__tycle_ref_")){
+    else if(typeof valRetour === "string" && valRetour.includes("__tycle_instance_")){
         valRetour = buffer.get(valRetour);
     }
 
     return valRetour;
 }
 function deserialize(chaineJSON, functionReplacer){    
+    buffer.clear();
+    compteur = 0;
     //Resérialisation des objets qui ne sont pas référencés
     let objRetour = JSON.parse(chaineJSON, functionReplacer);
     objRetour = remplacementReference(objRetour);
     return objRetour;
 }
 
-const lastTest = new ObjetTestPrincipal();
-let buffer = new Map();
-let compteur = 0;
-console.log("------------------------");
-console.log("   Sérialisation");
-console.log("------------------------");
-const stringJSON = serialize(lastTest, replacer);
-console.log("       ***Chaine JSON***");
-console.log(stringJSON);
-console.log("       ***Valeur Buffer***");
-console.log(buffer);
 
-buffer.clear();
-compteur = 0;
 
-console.log("------------------------");
-console.log("   Désérialisation");
-console.log("------------------------");
-const objParse = deserialize(stringJSON, reviver);
-console.log("       ***Objet désérialisé***");
-console.log(objParse);
-console.log("       ***Valeur Buffer***");
-console.log(buffer);
-//verifDeserialisation(objParse);

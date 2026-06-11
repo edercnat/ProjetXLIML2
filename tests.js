@@ -207,8 +207,8 @@ function reviver(clef, valeur){
                 valRetour = DictionnairePrototypes[prototypeString](valeurBrute);
             }
             else{
-                //Si c'est une classe
-                if(typeof valeurBrute === "object"){
+                //Si c'est une classe et pas un set et pas une map
+                if(typeof valeurBrute === "object" && prototypeString !== "Set" && prototypeString !== "Map"){
                     valRetour = Object.create(DictionnairePrototypes[prototypeString].prototype);
                     Object.assign(valRetour, valeurBrute);
                 }
@@ -226,7 +226,6 @@ function reviver(clef, valeur){
 }
 
 function serialize(obj, functionReplacer){
-    
     const chaineJSON = JSON.stringify(obj, functionReplacer, 2);
     return chaineJSON;
 }
@@ -256,27 +255,37 @@ function deserialize(chaineJSON, functionReplacer){
     return objRetour;
 }
 
-const lastTest = new ObjetTestPrincipal();
+// const lastTest = new ObjetTestPrincipal();
 let buffer = new Map();
 let compteur = 0;
-console.log("------------------------");
-console.log("   Sérialisation");
-console.log("------------------------");
-const stringJSON = serialize(lastTest, replacer);
-console.log("       ***Chaine JSON***");
-console.log(stringJSON);
-console.log("       ***Valeur Buffer***");
-console.log(buffer);
+// console.log("------------------------");
+// console.log("   Sérialisation");
+// console.log("------------------------");
+// const stringJSON = serialize(lastTest, replacer);
+// console.log("       ***Chaine JSON***");
+// console.log(stringJSON);
+// console.log("       ***Valeur Buffer***");
+// console.log(buffer);
 
-buffer.clear();
-compteur = 0;
 
-console.log("------------------------");
-console.log("   Désérialisation");
-console.log("------------------------");
-const objParse = deserialize(stringJSON, reviver);
-console.log("       ***Objet désérialisé***");
-console.log(objParse);
-console.log("       ***Valeur Buffer***");
-console.log(buffer);
+
+// console.log("------------------------");
+// console.log("   Désérialisation");
+// console.log("------------------------");
+// const objParse = deserialize(stringJSON, reviver);
+// console.log("       ***Objet désérialisé***");
+// console.log(objParse);
+// console.log("       ***Valeur Buffer***");
+// console.log(buffer);
 //verifDeserialisation(objParse);
+
+// const set = new Set(["2", 1,2]);
+// console.log(set);
+// const setSerialise =serialize(set, replacer);
+// console.log(setSerialise);
+// const setDeserialise = deserialize(setSerialise, reviver);
+// console.log(set == setDeserialise);
+// console.log(set, setDeserialise);
+const val = Object.create(null);
+const test = JSON.stringify(val);
+console.log(val, JSON.parse(test));
