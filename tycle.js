@@ -103,14 +103,6 @@ function verifDeserialisation(objet){
 //-----------------------------------------------
 //  Fonction replacer
 //-----------------------------------------------
-
-
-// function newID(){
-//     let nID = compteur;
-//     compteur++;
-//     return "__tycle_ref_" + nID;
-// }
-
 function replacer(clef, valeur){
     const objetOriginal = this[clef];
 
@@ -210,7 +202,6 @@ function reviver(clef, valeur){
             console.log(`Erreur dans reviver pour le constructeur de ${prototypeString}, il n'est pas défini`);
             return valeurBrute;
         }
-
         try{
             if(prototypeString === "Number" || prototypeString === "BigInt" || prototypeString === "Symbol"){
                 valRetour = DictionnairePrototypes[prototypeString](valeurBrute);
@@ -224,30 +215,18 @@ function reviver(clef, valeur){
                 else{
                     valRetour = new DictionnairePrototypes[prototypeString](valeurBrute);
                 }
-
             }
         }
         catch(err){
             console.error(`Échec critique lors de l'instanciation de ${prototypeString} :`, err.message);
             return valeurBrute;
-        }
-        
+        }   
     }
-    
-    
-   
-
-    
-    
     return valRetour;
 }
 
 function serialize(obj, functionReplacer){
-    let buffer = new Map();
-    let compteur = 0;
-
     const chaineJSON = JSON.stringify(obj, functionReplacer, 2);
-
     return chaineJSON;
 }
 
@@ -299,5 +278,4 @@ console.log("       ***Objet désérialisé***");
 console.log(objParse);
 console.log("       ***Valeur Buffer***");
 console.log(buffer);
-
-// verifDeserialisation(objParse);
+//verifDeserialisation(objParse);
