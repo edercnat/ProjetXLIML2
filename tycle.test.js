@@ -200,5 +200,18 @@ describe('Tycle - Batterie complète de tests (25 cas)', () => {
             expect(restored).toBeInstanceOf(Error);
             expect(restored.message).toBe("Error: Mon erreur système");
         });
+        it('25. Faille d\'Injection : Collision de clés réservées (Tycle poisoning)', () => {
+            // Si un utilisateur stocke légitimement des données dans une clé portant le même nom que tes balises internes
+            const objMalveillant = {
+                "__tycle_value": "Je suis un hacker",
+                "__tycle_prototype": "Array",
+                "normal": true
+            };
+            
+            const restored = deserialize(serialize(objMalveillant));
+            expect(restored.normal).toBe(true);
+            expect(typeof restored).toBe("object");
+            expect(Array.isArray(restored)).toBe(false); // Ne doit pas être converti en tableau par erreur
+        });
     });
 });
