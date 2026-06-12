@@ -1,11 +1,13 @@
+export {serialize, deserialize}
+
 //-----------------------------------------------
 //  Variables globales
 //-----------------------------------------------
+//Dictionnaire des prototypes que l'on va utiliser
+const DictionnairePrototypes = {};
 //Buffer et compteur qui nous sert à calculer les identifiants et à gérer les références
 let buffer = new Map();
 let compteur = 0;
-//Dictionnaire des prototypes que l'on va utiliser
-const DictionnairePrototypes = {};//Dico des protoypes utilisés
 
 /**
  * Fonction qui vérifie si le constructeur des instances traitées sont bien déjà référencées dans le dictionnaire
@@ -23,16 +25,15 @@ function estDejaStocke(name, dico){
 }
 
 /**
- * Fonction passée en paramètre de JSON.strinfigy pour sérialiser les objets non-traités nativement pas Javascript
+ * Fonction passée en paramètre de JSON.stringify pour sérialiser les objets non-traités nativement pas Javascript
  * Elle décompose les objets non-natifs sous forme 
  * {
- *      "__tycle_prototype" : ID du prototype de l'objet dans le dictionnaire
- *      "__tycle_value" : valeur sérialisée en string
+ * "__tycle_prototype" : ID du prototype de l'objet dans le dictionnaire
+ * "__tycle_value" : valeur sérialisée en string
  * }
  * Les objets référencés sont eux remplacés par un identifiant de type :
- *  "__tycle_instance_XXXX" avec XXXX représentant la position de l'objet lors du traitement descendant de l'arbre
- * 
- * Cette fonction traduit tous les types en valeur primitives (bool, string ou Object de type dictionnaire).
+ * "__tycle_instance_XXXX" avec XXXX représentant la position de l'objet lors du traitement descendant de l'arbre
+ * * Cette fonction traduit tous les types en valeur primitives (bool, string ou Object de type dictionnaire).
  * Les nombres sont traités différemment pour pouvoir sérialiser les NaN et Infinity.
  * @param {[string]} clef Normalement un string qui est la clef menant à la valeur à sérialiser
  * @param {*} valeur Valeur à sérialiser qui peut être déjà modifiée(notamment pour les dates). On prefèrera donc utiliser this[clef] (this étant l'objet parent) qui donne l'objet non retouché
@@ -53,13 +54,24 @@ function replacer(clef, valeur){
     //Si la valeur n'est pas stockée dans notre registre des constructeurs, on l'ajoute
     if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes)){
         DictionnairePrototypes[objetOriginal.constructor.name] = objetOriginal.constructor;
-    }    
+    }
+    //console.log("Sérialisation :", objetOriginal.constructor.name, clef, valeur);
+
+    
     //Parfois valeur est déjà sérialisée (par exemple déjà en string pour une date)
     //On utilise donc this[clef] (this représentant l'objet parent) pour récupérer la valeur non sérialisée
     let valRetour = valeur;
+
+
+        
     //Nos types primitifs sont les strings, listes et les objets de type dictionnaire.
     //On ne les traite donc pas
+    //Condition peut être utile plus tard : Object.prototype.toString.call(objetOriginal) != "[object Object]"
     if(typeof objetOriginal != "string" && !Array.isArray(objetOriginal) && objetOriginal.constructor.name != "Object" && objetOriginal.constructor.name != "Boolean"){
+
+
+        
+
         //Si la valeur n'est pas déjà sous forme {
         //     "constructeur" : constructeur,
         //     "valeur" : valeur originale
@@ -71,8 +83,10 @@ function replacer(clef, valeur){
                 "__tycle_value" : objetOriginal
             }
         }
+        
         //Si on est dans une valeur à traiter (donc avec la clef "valeur"), on la traite selon ce que l'on veut
         else if(clef === "__tycle_value"){
+
             let valSerialisee = Array.from(objetOriginal);
             //Si on peut la convertir en liste
             if(valSerialisee.length > 0){
@@ -97,23 +111,13 @@ function replacer(clef, valeur){
         } 
         //Sinon on l'ajoute au registre
         else {
-            buffer.set(objetOriginal, ("__tycle_instance_" + compteur));
+            buffer.set(objetOriginal, ("__tycle_ref_" + compteur));
             compteur++;
         }
     }    
     return valRetour;
 }
-/**
- * Fonction qui permet de sérialiser les objets en JSON, elle remet le buffer et le compteur d'ID à zéro
- * @param {*}  obj Objet à sérialiser 
- * @returns Elle retourne l'objet entièrement sérialisé en format JSON. La map contient les objets en clef et leur identifiants en valeur.
- */
-function serialize(obj){
-    buffer.clear();
-    compteur = 0;
-    const chaineJSON = JSON.stringify(obj, replacer, 2);
-    return chaineJSON;
-}
+
 /**
  * Désérialisation d'un fichier JSON en JavaScript, en rétablissant tous les types et les références circulaires.
  * @param {string} clef 
@@ -121,7 +125,7 @@ function serialize(obj){
  * @returns Tous les types possibles.
  */
 function reviver(clef, valeur){   
-    // Gestion des cas particuliers null | undefined | -0
+    //Permet de gérer les valeurs null et undefined
     if(valeur === "__tycle_null"){
         return null;
     }
@@ -131,53 +135,56 @@ function reviver(clef, valeur){
     else if(valeur === "__tycle_minus_zero"){
         return -0;
     }
-
     let valRetour = valeur;
 
-    // Traite les cas où la valeur a été mis en forme par le replacer, donc comportant les argument "__tycle_prototype" et "__tycle_value"
+    //Si la valeur a été sérialisée par nos soins
     if(valeur["__tycle_value"] && typeof valeur === "object"){
-        //Recuperation de __tycle_value et __tycle_prototype
         const prototypeString = valeur["__tycle_prototype"];
         const valeurBrute = valeur["__tycle_value"];
-        // Récupération du constructeur grâce au dictionnaire "DictionnairePrototypes"
         const constructeur = DictionnairePrototypes[prototypeString];
 
-        // Levée d'erreur si aucun constructeur n'est trouvé
         if(!constructeur){
             console.log(`Erreur dans reviver pour le constructeur de ${prototypeString}, il n'est pas défini`);
             return valeurBrute;
         }
 
         try{
-            // Recréation des types Number, BigInt, Symbol
             if(prototypeString === "Number" || prototypeString === "BigInt" || prototypeString === "Symbol"){
-                valRetour = constructeur(valeurBrute);
+                valRetour = DictionnairePrototypes[prototypeString](valeurBrute);
             }
             else{
-                // Dans le cas d'une recréation de class
-                if(typeof valeurBrute === "object"){
-                    valRetour = Object.create(constructeur.prototype);
+                //Si c'est une classe
+                if(typeof valeurBrute === "object" && prototypeString != "Map" && prototypeString != "Set"){
+                    valRetour = Object.create(DictionnairePrototypes[prototypeString].prototype);
                     Object.assign(valRetour, valeurBrute);
                 }
-                // Pour tous les autres types qui nécessitent un new pour la création
                 else{
-                    valRetour = new constructeur(valeurBrute);
+                    valRetour = new DictionnairePrototypes[prototypeString](valeurBrute);
                 }
 
             }
         }
-        //Levée d'erreur si l'objet posseder un type mais que l'on as pas reussie a le recrée
         catch(err){
             console.error(`Échec critique lors de l'instanciation de ${prototypeString} :`, err.message);
             return valeurBrute;
         }
         
     }
-    
     return valRetour;
 }
 
- 
+/**
+ * Fonction qui permet de sérialiser les objets en JSON, elle remet le buffer et le compteur d'ID à zéro
+ * @param {*}  obj Objet à sérialiser 
+ * @param {*} functionReplacer Fonction replacer que l'on passe en paramètre de cette fonction, elle sera mise en paramètre lors de l'appel à stringify
+ * @returns Elle retourne l'objet entièrement sérialisé en format JSON. La map contient les objets en clef et leur identifiants en valeur.
+ */
+function serialize(obj){
+    buffer.clear();
+    compteur = 0;
+    return JSON.stringify(obj, replacer, 2);
+}
+
 /**
  * Fonction qui permet de remplacer les références par les objets référencés.
  * @param {*} obj Objet précédemment désérialisé par le reviver.
@@ -185,16 +192,15 @@ function reviver(clef, valeur){
  */
 function remplacementReference(obj){
     let valRetour = obj;
-    // Si c'est un objet référençable, on l'ajoute au buffer et on augmente le compteur
-    if(typeof valRetour == "object"){
+    //Si c'est un objet référençable, on l'ajoute au buffer et on augmente le compteur
+    if(typeof valRetour == "object" && valRetour != null ){
         buffer.set(("__tycle_ref_" + compteur), valRetour);
         compteur++;
-        // On rappelle la fonction sur chacun de ses fils
+        //On rappelle la fonction sur chacun de ses fils
         for(const fils in valRetour){
             valRetour[fils] = remplacementReference(valRetour[fils]);
         }
     }
-    // Si la valeur est la chaîne correspondant à "__tycle_ref_ID", alors on remplace la valeur par l'objet référencé
     else if(typeof valRetour === "string" && valRetour.includes("__tycle_ref_")){
         valRetour = buffer.get(valRetour);
     }
@@ -209,16 +215,9 @@ function remplacementReference(obj){
  * @returns Elle retourne l'objet entierement deserialiser
  */
 function deserialize(chaineJSON){    
+    //Resérialisation des objets qui ne sont pas référencés
     buffer.clear();
     compteur = 0;
-    // Resérialisation des objets qui ne sont pas référencés
     let objRetour = JSON.parse(chaineJSON, reviver);
-    objRetour = remplacementReference(objRetour);
-    return objRetour;
+    return remplacementReference(objRetour);
 }
-
-
-
-
-export { serialize, deserialize, replacer, reviver };
-
