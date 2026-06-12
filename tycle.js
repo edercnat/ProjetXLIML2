@@ -129,8 +129,9 @@ function reviver(clef, valeur){
 
     let valRetour = valeur;
 
-    // Traite les cas où la valeur a été sérialisée par tycle
+    // Traite les cas où la valeur a été mis en forme par le replacer, donc comportant les argument "__tycle_prototype" et "__tycle_value"
     if(valeur["__tycle_value"] && typeof valeur === "object"){
+        //Recuperation de __tycle_value et __tycle_prototype
         const prototypeString = valeur["__tycle_prototype"];
         const valeurBrute = valeur["__tycle_value"];
         // Récupération du constructeur grâce au dictionnaire "DictionnairePrototypes"
@@ -145,21 +146,22 @@ function reviver(clef, valeur){
         try{
             // Recréation des types Number, BigInt, Symbol
             if(prototypeString === "Number" || prototypeString === "BigInt" || prototypeString === "Symbol"){
-                valRetour = DictionnairePrototypes[prototypeString](valeurBrute);
+                valRetour = constructeur(valeurBrute);
             }
             else{
-                // Dans le cas d'une création de class
+                // Dans le cas d'une recréation de class
                 if(typeof valeurBrute === "object"){
-                    valRetour = Object.create(DictionnairePrototypes[prototypeString].prototype);
+                    valRetour = Object.create(constructeur.prototype);
                     Object.assign(valRetour, valeurBrute);
                 }
                 // Pour tous les autres types qui nécessitent un new pour la création
                 else{
-                    valRetour = new DictionnairePrototypes[prototypeString](valeurBrute);
+                    valRetour = new constructeur(valeurBrute);
                 }
 
             }
         }
+        //Levée d'erreur si l'objet posseder un type mais que l'on as pas reussie a le recrée
         catch(err){
             console.error(`Échec critique lors de l'instanciation de ${prototypeString} :`, err.message);
             return valeurBrute;
