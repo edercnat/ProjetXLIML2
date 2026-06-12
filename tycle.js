@@ -121,7 +121,7 @@ function replacer(clef, valeur){
 /**
  * Désérialisation d'un fichier JSON en JavaScript, en rétablissant tous les types et les références circulaires.
  * @param {string} clef 
- * @param {String | Object | Boolean} valeur La valeur brute en sortie de JSON.parse avant sa transformation par le reviver.
+ * @param {String} valeur La valeur brute en sortie de JSON.parse avant sa transformation par le reviver.
  * @returns Tous les types possibles.
  */
 function reviver(clef, valeur){   
