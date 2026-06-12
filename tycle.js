@@ -170,14 +170,6 @@ function reviver(clef, valeur){
     return valRetour;
 }
 
-function serialize(obj, functionReplacer){
-    buffer.clear();
-    compteur = 0;
-    const chaineJSON = JSON.stringify(obj, functionReplacer, 2);
-
-    return chaineJSON;
-}
-
  
 /**
  * Fonction qui permet de remplacer les références par les objets référencés.
@@ -204,10 +196,10 @@ function remplacementReference(obj){
 }
 
 /**
- * Fonction de lancement de la désérialisation.
+ * Fonction de lancement de la désérialisation, elle clear le Buffer et remets à 0 le compteur.
  * @param {String} chaineJSON 
  * @param {Function} functionReplacer 
- * @returns L'objet final entièrement recréé.
+ * @returns Elle retourne l'objet entierement deserialiser
  */
 function deserialize(chaineJSON, functionReplacer){    
     buffer.clear();
