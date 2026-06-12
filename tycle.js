@@ -112,8 +112,14 @@ function serialize(obj, functionReplacer){
     const chaineJSON = JSON.stringify(obj, functionReplacer, 2);
     return chaineJSON;
 }
+/**
+ * Désérialisation d'un fichier JSON en JavaScript, en rétablissant tous les types et les références circulaires.
+ * @param {string} clef 
+ * @param {String | Object | Boolean} valeur La valeur brute en sortie de JSON.parse avant sa transformation par le reviver.
+ * @returns Tous les types possibles.
+ */
 function reviver(clef, valeur){   
-    //Permet de gérer les valeurs null et undefined
+    // Gestion des cas particuliers null | undefined | -0
     if(valeur === "__tycle_null"){
         return null;
     }
@@ -123,66 +129,97 @@ function reviver(clef, valeur){
 
     let valRetour = valeur;
 
-    //Si la valeur a été sérialisée par nos soins
+    // Traite les cas où la valeur a été sérialisée par tycle
     if(valeur["__tycle_value"] && typeof valeur === "object"){
         const prototypeString = valeur["__tycle_prototype"];
         const valeurBrute = valeur["__tycle_value"];
+        // Récupération du constructeur grâce au dictionnaire "DictionnairePrototypes"
         const constructeur = DictionnairePrototypes[prototypeString];
 
+        // Levée d'erreur si aucun constructeur n'est trouvé
         if(!constructeur){
             console.log(`Erreur dans reviver pour le constructeur de ${prototypeString}, il n'est pas défini`);
             return valeurBrute;
         }
+
         try{
+            // Recréation des types Number, BigInt, Symbol
             if(prototypeString === "Number" || prototypeString === "BigInt" || prototypeString === "Symbol"){
                 valRetour = DictionnairePrototypes[prototypeString](valeurBrute);
             }
             else{
-                //Si c'est une classe
-                if(typeof valeurBrute === "object" && prototypeString !== "Set" && prototypeString !== "Map"){
+                // Dans le cas d'une création de class
+                if(typeof valeurBrute === "object"){
                     valRetour = Object.create(DictionnairePrototypes[prototypeString].prototype);
                     Object.assign(valRetour, valeurBrute);
                 }
+                // Pour tous les autres types qui nécessitent un new pour la création
                 else{
                     valRetour = new DictionnairePrototypes[prototypeString](valeurBrute);
                 }
+
             }
         }
         catch(err){
             console.error(`Échec critique lors de l'instanciation de ${prototypeString} :`, err.message);
             return valeurBrute;
-        }   
+        }
+        
     }
+    
     return valRetour;
 }
 
+function serialize(obj, functionReplacer){
+    buffer.clear();
+    compteur = 0;
+    const chaineJSON = JSON.stringify(obj, functionReplacer, 2);
 
-//Fonction qui permet de remplacer les références par les objets référencés
+    return chaineJSON;
+}
+
+ 
+/**
+ * Fonction qui permet de remplacer les références par les objets référencés.
+ * @param {*} obj Objet précédemment désérialisé par le reviver.
+ * @returns Objet avec toutes les références recréées.
+ */
 function remplacementReference(obj){
     let valRetour = obj;
-    //Si c'est un objet référençable, on l'ajoute au buffer et on augmente le compteur
+    // Si c'est un objet référençable, on l'ajoute au buffer et on augmente le compteur
     if(typeof valRetour == "object"){
-        buffer.set(("__tycle_instance_" + compteur), valRetour);
+        buffer.set(("__tycle_ref_" + compteur), valRetour);
         compteur++;
-        //On rappelle la fonction sur chacun de ses fils
+        // On rappelle la fonction sur chacun de ses fils
         for(const fils in valRetour){
             valRetour[fils] = remplacementReference(valRetour[fils]);
         }
     }
-    else if(typeof valRetour === "string" && valRetour.includes("__tycle_instance_")){
+    // Si la valeur est la chaîne correspondant à "__tycle_ref_ID", alors on remplace la valeur par l'objet référencé
+    else if(typeof valRetour === "string" && valRetour.includes("__tycle_ref_")){
         valRetour = buffer.get(valRetour);
     }
 
     return valRetour;
 }
+
+/**
+ * Fonction de lancement de la désérialisation.
+ * @param {String} chaineJSON 
+ * @param {Function} functionReplacer 
+ * @returns L'objet final entièrement recréé.
+ */
 function deserialize(chaineJSON, functionReplacer){    
     buffer.clear();
     compteur = 0;
-    //Resérialisation des objets qui ne sont pas référencés
+    // Resérialisation des objets qui ne sont pas référencés
     let objRetour = JSON.parse(chaineJSON, functionReplacer);
     objRetour = remplacementReference(objRetour);
     return objRetour;
 }
 
 
+
+
+export { serialize, deserialize, replacer, reviver };
 
