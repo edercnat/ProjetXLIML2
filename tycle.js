@@ -176,7 +176,6 @@ function reviver(clef, valeur){
 /**
  * Fonction qui permet de sérialiser les objets en JSON, elle remet le buffer et le compteur d'ID à zéro
  * @param {*}  obj Objet à sérialiser 
- * @param {*} functionReplacer Fonction replacer que l'on passe en paramètre de cette fonction, elle sera mise en paramètre lors de l'appel à stringify
  * @returns Elle retourne l'objet entièrement sérialisé en format JSON. La map contient les objets en clef et leur identifiants en valeur.
  */
 function serialize(obj){
@@ -211,7 +210,6 @@ function remplacementReference(obj){
 /**
  * Fonction de lancement de la désérialisation, elle clear le Buffer et remets à 0 le compteur.
  * @param {String} chaineJSON 
- * @param {Function} functionReplacer 
  * @returns Elle retourne l'objet entierement deserialiser
  */
 function deserialize(chaineJSON){    
