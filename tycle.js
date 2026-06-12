@@ -106,13 +106,12 @@ function replacer(clef, valeur){
 /**
  * Fonction qui permet de sérialiser les objets en JSON, elle remet le buffer et le compteur d'ID à zéro
  * @param {*}  obj Objet à sérialiser 
- * @param {*} functionReplacer Fonction replacer que l'on passe en paramètre de cette fonction, elle sera mise en paramètre lors de l'appel à stringify
  * @returns Elle retourne l'objet entièrement sérialisé en format JSON. La map contient les objets en clef et leur identifiants en valeur.
  */
-function serialize(obj, functionReplacer){
+function serialize(obj){
     buffer.clear();
     compteur = 0;
-    const chaineJSON = JSON.stringify(obj, functionReplacer, 2);
+    const chaineJSON = JSON.stringify(obj, replacer, 2);
     return chaineJSON;
 }
 /**
@@ -209,11 +208,11 @@ function remplacementReference(obj){
  * @param {Function} functionReplacer 
  * @returns Elle retourne l'objet entierement deserialiser
  */
-function deserialize(chaineJSON, functionReplacer){    
+function deserialize(chaineJSON){    
     buffer.clear();
     compteur = 0;
     // Resérialisation des objets qui ne sont pas référencés
-    let objRetour = JSON.parse(chaineJSON, functionReplacer);
+    let objRetour = JSON.parse(chaineJSON, reviver);
     objRetour = remplacementReference(objRetour);
     return objRetour;
 }
