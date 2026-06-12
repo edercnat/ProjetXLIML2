@@ -200,5 +200,160 @@ describe('Tycle - Batterie complète de tests (25 cas)', () => {
             expect(restored).toBeInstanceOf(Error);
             expect(restored.message).toBe("Error: Mon erreur système");
         });
+        it('25. Faille d\'Injection : Collision de clés réservées (Tycle poisoning)', () => {
+            // Si un utilisateur stocke légitimement des données dans une clé portant le même nom que tes balises internes
+            const objMalveillant = {
+                "__tycle_value": "Je suis un hacker",
+                "__tycle_prototype": "Array",
+                "normal": true
+            };
+            const restored = deserialize(serialize(objMalveillant));
+            expect(restored.normal).toBe(true);
+            expect(typeof restored).toBe("object");
+            expect(Array.isArray(restored)).toBe(false); // Ne doit pas être converti en tableau par erreur
+        });
+        it('26. Faille Native : Structure Map (perte de data sur Map)', () => {
+            const mp = new Map();
+            const ensemble = new Set([1, 2, 3]);
+            mp.set("clef", ensemble);
+            const restored = deserialize(serialize(mp));
+            expect(restored).toBeInstanceOf(Map);
+            expect(restored.has("clef")).toBe(true);
+            const restoredSet = restored.get("clef");
+            expect(restoredSet).toBeInstanceOf(Set);
+            expect(restoredSet.size).toBe(3);
+            expect(restoredSet.has(1)).toBe(true);
+            expect(restoredSet.has(2)).toBe(true);
+            expect(restoredSet.has(3)).toBe(true);
+            expect(restored).not.toBe(mp);
+            expect(restoredSet).not.toBe(ensemble);
+        });
+    });
+    describe('Section 6 : Les Failles et Crash Tests de l\'Algorithme sur des classes complexes [27]', () => {
+        it('27. Faille De l\'algo : Classe complexe niv pro (test ref circ, héritage, ref inst, map, set,...', () => {
+            class SousComposant {
+                constructor(nom) {
+                    this.nom = nom;
+                    this.parent = null;
+                }
+            }
+            class ObjetTestPrincipal {
+                constructor() {
+                    // // --- Primitives de base ---
+                    this.chaine = "Test de sérialisation";
+                    this.entier = 42;
+                    this.vrai = true;
+                    this.faux = false;
+
+                    // --- Le vide et l'absence ---
+                    this.valeurNulle = null;
+                    this.valeurNonDefinie = undefined;
+
+                    // --- Les Nombres spéciaux (qui cassent le JSON natif) ---
+                    this.notANumber = NaN;
+                    this.infiniPositif = Infinity;
+                    this.infiniNegatif = -Infinity;
+
+                    // --- Les Primitives complexes ---
+                    this.grandEntier = 9007199254740992n; // BigInt
+                    this.symboleCache = Symbol("symbole_secret");
+
+                    // --- Les Objets Natifs (nécessitant leur constructeur) ---
+                    this.dateAujourdhui = new Date();
+                    this.expressionReguliere = /tycle[0-9]+/gi;
+                    this.erreurFatale = new Error("Ceci est une erreur de test simulée");
+
+                    // // --- Les Itérables et Structures ---
+                    this.tableauSimple = [1, "deux", false];
+                    this.tableauATrous = [1, , 3]; // Sparse array (tableau avec un <empty item>)
+                    
+                    this.maMap = new Map();
+                    this.maMap.set("clef_1", "Valeur Map 1");
+                    this.maMap.set("clef_2", 100);
+
+                    this.monSet = new Set();
+                    this.monSet.add("Valeur unique A");
+                    this.monSet.add("Valeur unique B");
+
+                    // --- RÉFÉRENCES CIRCULAIRES ---
+                    // 1. Cycle Bidirectionnel (Parent <-> Enfant)
+                    this.enfant = new SousComposant("Composant A");
+                    this.enfant.parent = this; 
+                    this.copyDeFou = this.tableauATrous;
+                    // 2. Auto-référence pure (L'objet pointe vers lui-même)
+                    this.cloneDeMoi = this; 
+                }
+            }
+            const objOriginal = new ObjetTestPrincipal();
+            const restored = deserialize(serialize(objOriginal));
+
+            // --- 1. Intégrité de la classe principale ---
+            expect(restored).toBeInstanceOf(ObjetTestPrincipal);
+            expect(restored).not.toBe(objOriginal); // Garantit que c'est une vraie copie profonde, pas l'objet d'origine
+
+            // --- 2. Primitives de base ---
+            expect(restored.chaine).toBe("Test de sérialisation");
+            expect(restored.entier).toBe(42);
+            expect(restored.vrai).toBe(true);
+            expect(restored.faux).toBe(false);
+
+            // --- 3. Le vide et l'absence ---
+            expect(restored.valeurNulle).toBeNull();
+            expect(restored.valeurNonDefinie).toBeUndefined();
+
+            // --- 4. Primitives complexes ---
+            expect(typeof restored.grandEntier).toBe("bigint");
+            expect(restored.grandEntier).toBe(9007199254740992n);
+            expect(typeof restored.symboleCache).toBe("symbol");
+            expect(restored.symboleCache.description).toBe("symbole_secret");
+
+            // --- 5. Objets Natifs complexes ---
+            expect(restored.dateAujourdhui).toBeInstanceOf(Date);
+            expect(restored.dateAujourdhui.getTime()).toBe(objOriginal.dateAujourdhui.getTime());
+            expect(restored.erreurFatale).toBeInstanceOf(Error);
+            expect(restored.erreurFatale.message).toBe("Error: Ceci est une erreur de test simulée");
+
+            // --- 6. Itérables et Structures ---
+            expect(restored.tableauSimple).toEqual([1, "deux", false]);
+            expect(restored.tableauATrous.length).toBe(3);
+            expect(restored.tableauATrous[0]).toBe(1);
+            expect(restored.tableauATrous[1]).toBeUndefined();
+            expect(restored.tableauATrous[2]).toBe(3);
+
+            expect(restored.maMap).toBeInstanceOf(Map);
+            expect(restored.maMap.get("clef_1")).toBe("Valeur Map 1");
+            expect(restored.maMap.get("clef_2")).toBe(100);
+
+            expect(restored.monSet).toBeInstanceOf(Set);
+            expect(restored.monSet.has("Valeur unique A")).toBe(true);
+            expect(restored.monSet.has("Valeur unique B")).toBe(true);
+
+            // --- 7. RÉFÉRENCES CIRCULAIRES ET POINTEURS (Le plus critique) ---
+            
+            // A. Vérification de l'instance enfant
+            expect(restored.enfant).toBeInstanceOf(SousComposant);
+            expect(restored.enfant.nom).toBe("Composant A");
+            
+            // B. Le cycle enfant -> parent
+            // L'enfant doit pointer vers l'instance "restored" elle-même, et non une nouvelle copie !
+            expect(restored.enfant.parent).toBe(restored);
+
+            // C. Référence partagée
+            // copyDeFou et tableauATrous doivent partager la MÊME adresse mémoire
+            expect(restored.copyDeFou).toBe(restored.tableauATrous);
+
+            // D. Auto-référence pure
+            // L'objet pointe vers lui-même
+            expect(restored.cloneDeMoi).toBe(restored);
+
+
+            // --- 8. LES NOMBRES SPÉCIAUX ET REGEX (Crash tests attendus) ---
+            expect(Number.isNaN(restored.notANumber)).toBe(true);
+            expect(restored.infiniPositif).toBe(Infinity);
+            expect(restored.infiniNegatif).toBe(-Infinity);
+
+            expect(restored.expressionReguliere).toBeInstanceOf(RegExp);
+            expect(restored.expressionReguliere.source).toBe("\\/tycle[0-9]+\\/gi");
+        });
     });
 });
