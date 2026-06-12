@@ -47,6 +47,9 @@ function replacer(clef, valeur){
     else if(objetOriginal === undefined){
         return "__tycle_undefined";
     }
+    else if(Object.is(objetOriginal,-0)){
+        return "__tycle_minus_zero";
+    }
     //Si la valeur n'est pas stockée dans notre registre des constructeurs, on l'ajoute
     if(!estDejaStocke(this[clef].constructor.name, DictionnairePrototypes)){
         DictionnairePrototypes[objetOriginal.constructor.name] = objetOriginal.constructor;
@@ -125,6 +128,9 @@ function reviver(clef, valeur){
     }
     else if(valeur === "__tycle_undefined"){
         return undefined;
+    }
+    else if(valeur === "__tycle_minus_zero"){
+        return -0;
     }
 
     let valRetour = valeur;
